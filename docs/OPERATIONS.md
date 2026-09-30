@@ -6,7 +6,8 @@ Prerequisites: Python 3.12+, PostgreSQL 16, `psql`, `pytest`, `psycopg`.
 
 ```bash
 export HR_PG_DSN="postgresql://hatch:hatch@127.0.0.1/hrdemo"
-bash scripts/migrate.sh          # migrations + QA seed metadata (idempotent)
+bash scripts/migrate.sh          # framework tf.* tables (idempotent)
+bash examples/reference_pipeline/db/apply.sh  # example schema + seeds + cases
 python3 -m pytest tests/unit -q
 python3 -m test_framework.runner --env local --suite regression
 ```
@@ -57,7 +58,7 @@ access:
 
 ```bash
 export HR_PG_DSN="postgresql://user:pass@10.x.x.x/hrprod"
-bash scripts/migrate.sh   # tf.* schema + seed cases; idempotent
+bash scripts/migrate.sh   # tf.* schema only; idempotent
 ```
 
 Only the `tf.*` tables are required. `bronze.*` / `silver.*` / `ops.*` /

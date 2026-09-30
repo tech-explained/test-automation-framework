@@ -33,8 +33,12 @@ Point `tf.environments.ingest_adapter` at the dotted path of your adapter
 ```bash
 export HR_PG_DSN="postgresql://hatch:hatch@127.0.0.1/hrdemo"
 
-# 1. apply migrations + seed the QA metadata (idempotent)
+# 1. apply the framework migrations (tf.* tables only; idempotent)
 bash scripts/migrate.sh
+
+# 2. apply the reference example: its own schema (bronze/silver/gold/ops),
+#    seed data (environments, suites, 23-case QA matrix), and JSON-spec cases
+bash examples/reference_pipeline/db/apply.sh
 
 # 2. unit tests
 python3 -m pytest tests/unit -q
@@ -55,9 +59,9 @@ assertion is also persisted in `tf.*` tables.
 | Path | What |
 |---|---|
 | `test_framework/` | The framework: `runner` (orchestrator), `fixtures` (deterministic NDJSON generators), `storage` (local/GCS backends), `pipeline_adapter` (the external-only adapter seam), `assertions` (SQL assertion engine), `batching` (batch ingest planner), `reporting` (Markdown reports). Requirements: `psycopg`, `google-cloud-storage`. |
-| `db/migrations/` | Framework schema (`tf.*`, `007`), external-pipeline seams (`008`, `010`), batch ingest (`009`). The `bronze.*` / `silver.*` / `ops.*` / `gold.*` migrations are the reference pipeline's schema, not the framework's. |
-| `db/seeds/` | QA metadata: environments, suites, 23 test cases. Re-runnable (`DO UPDATE`). |
-| `examples/` | **Not the framework.** `reference_pipeline/` is a working HR pipeline (the framework's original example target); `reference_adapter.py` implements the ingest contract against it. The seeded `local` env uses it (`ingest_adapter='examples.reference_adapter:ingest_file'`), so a fresh checkout runs fully offline. |
+| `db/migrations/` | Framework schema only: `tf.*` tables (`001_test_framework.sql`). Your pipeline's tables live with your pipeline. |
+| `db/seeds/` | Empty by design — the framework ships no seed data. Sample seeds live with the reference example. |
+| `examples/` | **Not the framework.** `reference_pipeline/` is a working HR pipeline; `reference_pipeline/db/` holds its own schema (`bronze`/`silver`/`gold`/`ops`), seeds (environments, suites, 23 test cases), and `apply.sh`. `reference_adapter.py` implements the ingest contract against it. |
 | `tests/unit/` | pytest suite for the framework: fixtures, assertions, batching, adapter (46 tests). |
 | `fixtures/samples/` | JSON test-case specs consumed by `test_framework/add_case.py`. |
 | `deploy/runner/` | Cloud Run Job packaging for running the framework itself on GCP. |
@@ -91,7 +95,7 @@ assertion is also persisted in `tf.*` tables.
 maximum isolation, one pipeline launch per file. `--ingest-mode batch` merges
 batch-eligible cases' fixture files by `as_of_date` into one NDJSON per date
 and calls the adapter once per group: the latest regression went from
-**34 launches to 15**, all 23 cases green.
+**34 launches to 13**, all 23 cases green.
 
 Eligibility is automatic: a case rides the batch unless it is flagged
 `batchable=FALSE`, runs more than one execution, uses a poison generator

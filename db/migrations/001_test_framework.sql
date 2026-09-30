@@ -1,17 +1,31 @@
--- 007_test_framework.sql
--- TF = test-framework metadata. The runner reads EVERYTHING from these tables:
--- no YAML, no JSON config files, no CLI-baked test lists. "Metadata-driven"
--- means: to add a test case you INSERT a row; to disable one you flip a flag.
--- "Persistence-driven" means: every run, step, assertion and artifact is
--- written back here, so the report is just a query and the audit trail is
--- complete by construction.
+-- 001_test_framework.sql
+-- Test Automation Framework metadata schema (tf.*).
+--
+-- This is the ENTIRE framework database: the runner reads everything from
+-- these tables (no YAML, no JSON config files, no CLI-baked test lists).
+-- "Metadata-driven" means: to add a test case you INSERT a row; to disable
+-- one you flip a flag. "Persistence-driven" means: every run, step,
+-- assertion and artifact is written back here, so the report is just a
+-- query and the audit trail is complete by construction.
+--
+-- The framework NEVER creates tables for the pipeline under test. Your
+-- pipeline's own schema (bronze/silver/gold, staging/marts, whatever it
+-- is) lives with your pipeline — see examples/reference_pipeline/db/ for
+-- how the reference example does it.
 
--- Execution environments (local dev vs real GCP).
+CREATE EXTENSION IF NOT EXISTS pgcrypto;
+
+CREATE SCHEMA IF NOT EXISTS tf;
+
+-- Execution environments. The pipeline under test is ALWAYS external: it
+-- plugs in via ingest_adapter, a dotted path 'module.path:function_name'
+-- implementing the ingest contract documented in
+-- test_framework/pipeline_adapter.py (see examples/reference_adapter.py).
 CREATE TABLE IF NOT EXISTS tf.environments (
     env_id            TEXT PRIMARY KEY,   -- 'local' | 'gcp'
     display_name      TEXT NOT NULL,
-    pipeline_mode     TEXT NOT NULL DEFAULT 'local'
-        CHECK (pipeline_mode IN ('local', 'dataflow')),
+    pipeline_mode     TEXT NOT NULL DEFAULT 'external'
+        CHECK (pipeline_mode = 'external'),
     storage_backend   TEXT NOT NULL DEFAULT 'local'
         CHECK (storage_backend IN ('local', 'gcs')),
     gcp_project       TEXT,
@@ -19,8 +33,14 @@ CREATE TABLE IF NOT EXISTS tf.environments (
     local_bucket_root TEXT,               -- used when storage_backend='local'
     dataflow_region   TEXT NOT NULL DEFAULT 'us-central1',
     db_dsn_env_var    TEXT NOT NULL DEFAULT 'HR_PG_DSN',
+    ingest_adapter    TEXT,               -- e.g. 'mycompany.qa_adapter:ingest_file'
     active            BOOLEAN NOT NULL DEFAULT TRUE
 );
+
+COMMENT ON COLUMN tf.environments.ingest_adapter IS
+    'Dotted path module.path:function_name implementing the pipeline ingest '
+    'contract (see test_framework/pipeline_adapter.py and '
+    'examples/reference_adapter.py).';
 
 -- Pipelines under test (lets the framework version them independently).
 CREATE TABLE IF NOT EXISTS tf.pipelines (
@@ -46,6 +66,9 @@ CREATE TABLE IF NOT EXISTS tf.suites (
 -- expectations = {"assertions": [ {"name","kind","sql","op","expected"}, ... ]}
 -- SQL may use {placeholders}: {prefix}, {file_id}, {file_id_0..N},
 -- {as_of_0..N}, {target_worker}. The runner binds them as query params.
+-- batchable = FALSE for cases whose value depends on per-file load
+-- isolation (poison fixtures, replay tests, the empty-file case): they
+-- always ingest solo, even in --ingest-mode batch.
 CREATE TABLE IF NOT EXISTS tf.test_cases (
     test_case_id     TEXT PRIMARY KEY,   -- 'TC-001'
     name             TEXT NOT NULL,
@@ -55,6 +78,7 @@ CREATE TABLE IF NOT EXISTS tf.test_cases (
     fixture_sequence JSONB NOT NULL,
     pipeline_id      TEXT NOT NULL REFERENCES tf.pipelines(pipeline_id),
     expectations     JSONB NOT NULL DEFAULT '{"assertions": []}',
+    batchable        BOOLEAN NOT NULL DEFAULT TRUE,
     enabled          BOOLEAN NOT NULL DEFAULT TRUE,
     owner            TEXT NOT NULL DEFAULT 'qa-framework'
 );

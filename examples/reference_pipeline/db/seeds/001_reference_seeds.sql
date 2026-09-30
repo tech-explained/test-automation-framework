@@ -1,4 +1,4 @@
--- 008_seed_test_cases.sql
+-- 001_reference_seeds.sql
 -- Seed environments, pipelines, suites and the 20-case QA matrix.
 -- Idempotent: safe to re-run (ON CONFLICT DO NOTHING).
 

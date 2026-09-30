@@ -42,12 +42,12 @@ python3 -m test_framework.runner --env local --suite regression --ingest-mode ba
 `--ingest-mode batch` merges batch-eligible cases by `as_of_date` and calls
 the adapter once per group; solo cases still ingest individually. Latest
 regression: 23/23 passed in both modes; batch mode cut adapter launches
-from 34 to 15. `--dry-run --ingest-mode batch` prints the batch plan
+from 34 to 13. `--dry-run --ingest-mode batch` prints the batch plan
 (groups, launch count, and which cases go BATCH vs SOLO) without running.
 
 ## The 23 cases
 
-`(solo)` marks the 9 cases that stay per-file in batch mode; the other 14
+`(solo)` marks the 10 cases that stay per-file in batch mode; the other 13
 are batchable.
 
 | ID | Category | Scenario | Batch |
@@ -74,7 +74,7 @@ are batchable.
 | TC-020 | dq | 60% null emails → advisory warning, load not blocked | solo |
 | TC-021 | scd4 | Promotion: title + salary change versions the worker; old title kept in history | batch |
 | TC-022 | scd4 | Location change versions the worker; old location kept in history | batch |
-| TC-023 | audit | Reconciliation: file content matches silver column-for-column, zero drift | batch |
+| TC-023 | audit | Reconciliation: file content matches silver column-for-column, zero drift | solo |
 
 The seeded cases target the example pipeline's schema (`bronze.*`,
 `silver.*`, `ops.*`); for your own pipeline, author cases against your own

@@ -109,7 +109,7 @@ echo
 echo "bootstrap complete. Next steps:"
 echo "  1. export HR_PG_DSN=\"\$(gcloud secrets versions access latest --secret=$SECRET_RUNNER --project=$PROJECT)\""
 echo "     # needs private-IP reachability: run from a VM in $NETWORK, or Cloud Shell with private-services access"
-echo "  2. bash scripts/migrate.sh   # tf.* schema + seed cases"
+echo "  2. bash scripts/migrate.sh   # tf.* schema (framework only)"
 echo "  3. register the gcp environment row (docs/OPERATIONS.md)"
 echo "  4. deploy/runner/deploy.sh   # build image, create Cloud Run Job, run smoke"
 echo

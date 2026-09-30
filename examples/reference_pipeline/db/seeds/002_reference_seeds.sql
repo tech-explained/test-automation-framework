@@ -1,4 +1,4 @@
--- 008_seed_part2.sql (continued): TC-009 .. TC-020 + suites.
+-- 002_reference_seeds.sql
 
 -- ============================ TC-009 =====================================
 INSERT INTO tf.test_cases

@@ -14,6 +14,19 @@ the framework was built against; it now lives here as a working example.
 - `transforms.py` / `main.py` — Beam/Dataflow bronze loading.
 - `dbio.py` — Postgres I/O.
 
+## `reference_pipeline/db/`
+
+The example's own database: `migrations/` (its `bronze`/`silver`/`gold`/
+`ops` schema — not the framework's), `seeds/` (environments, suites, and
+the 23-case HR QA matrix), and `apply.sh` which loads all of it plus the
+three JSON-spec cases from `fixtures/samples/`. Run after the framework
+migrations:
+
+```bash
+bash scripts/migrate.sh                          # tf.* tables (framework)
+bash examples/reference_pipeline/db/apply.sh     # example schema + seeds
+```
+
 ## `reference_adapter.py`
 
 Implements the framework's ingest contract against the reference pipeline:

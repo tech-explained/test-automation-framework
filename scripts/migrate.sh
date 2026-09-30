@@ -1,8 +1,11 @@
 #!/usr/bin/env bash
-# Applies migrations then seeds, in order. Requires HR_PG_DSN.
+# Applies the framework migrations (tf.* tables only). Requires HR_PG_DSN.
+# The framework ships with no seed data; sample seeds live with the
+# reference example (examples/reference_pipeline/db/).
 set -euo pipefail
 : "${HR_PG_DSN:?HR_PG_DSN must be set}"
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+shopt -s nullglob
 for f in "$ROOT"/db/migrations/*.sql; do
   echo "== $f"
   psql "$HR_PG_DSN" -v ON_ERROR_STOP=1 -q -f "$f"
@@ -11,4 +14,4 @@ for f in "$ROOT"/db/seeds/*.sql; do
   echo "== $f"
   psql "$HR_PG_DSN" -v ON_ERROR_STOP=1 -q -f "$f"
 done
-echo "migrations + seeds applied"
+echo "framework migrations applied"

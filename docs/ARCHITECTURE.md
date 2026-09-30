@@ -86,8 +86,9 @@ solo cases still ingest individually. The latest regression: 34 launches →
   `batchable=FALSE`, or it has `executions > 1`, or its fixture sequence
   uses a poison generator (`with_malformed`, `all_invalid`,
   `invalid_dates`, `missing_worker_id`, `empty`), or its generated files
-  are byte-identical (a replay/dedup test). Currently 14 batchable / 9 solo
-  of 23 seeded cases.
+  are byte-identical (a replay/dedup test), or its assertions assume
+  file-level isolation (e.g. TC-023's file-vs-silver reconciliation).
+  Currently 13 batchable / 10 solo of 23 seeded cases.
 - **Grouping** (`plan_batch_groups`): files grouped by `as_of_date` (the
   pipeline stamps one as-of per load; merging across dates would corrupt
   date semantics). Merged content is exactly the concatenation of member
