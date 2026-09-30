@@ -1,0 +1,16 @@
+# Cloud Build config: builds the QA runner image from the repo root.
+# Usage: gcloud builds submit --config deploy/runner/cloudbuild.yaml .
+steps:
+  - name: gcr.io/cloud-builders/docker
+    args:
+      - build
+      - -f
+      - deploy/runner/Dockerfile
+      - -t
+      - gcr.io/$PROJECT_ID/hr-qa-runner:$SHORT_SHA
+      - -t
+      - gcr.io/$PROJECT_ID/hr-qa-runner:latest
+      - .
+images:
+  - gcr.io/$PROJECT_ID/hr-qa-runner:$SHORT_SHA
+  - gcr.io/$PROJECT_ID/hr-qa-runner:latest

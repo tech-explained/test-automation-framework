@@ -1,0 +1,33 @@
+apiVersion: run.googleapis.com/v1
+kind: Job
+metadata:
+  name: hr-qa-runner
+  labels:
+    app: hr-qa-runner
+spec:
+  template:
+    spec:
+      template:
+        spec:
+          # Service account created by scripts/gcp_bootstrap.sh
+          serviceAccountName: hr-qa-runner@__PROJECT__.iam.gserviceaccount.com
+          # Lets the job reach Cloud SQL's private IP (connector from bootstrap)
+          vpcAccess:
+            connector: projects/__PROJECT__/locations/__REGION__/connectors/hr-qa-connector
+          containers:
+            - image: gcr.io/__PROJECT__/hr-qa-runner:latest
+              env:
+                # Name of the Secret Manager secret holding the DSN that
+                # *Dataflow workers* use (built-in dataflow mode).
+                - name: DATAFLOW_PG_DSN_SECRET
+                  value: hr-postgres-dsn
+                # DSN the *runner* uses to reach Cloud SQL (private IP).
+                - name: HR_PG_DSN
+                  valueFrom:
+                    secretKeyRef:
+                      name: hr-runner-dsn
+                      key: latest
+              resources:
+                limits:
+                  memory: 2Gi
+                  cpu: "2"

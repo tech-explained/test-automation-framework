@@ -100,6 +100,51 @@ Secret Manager accessor only if you keep the DSN in Secret Manager, and
 GCS objectAdmin on the fixture bucket. No Dataflow roles, no worker service
 account.
 
+## Deploy and run the framework inside GCP (Cloud Run Job)
+
+This runs the framework itself on GCP — no laptop needed. The runner executes
+as a Cloud Run Job in your project, talking to real GCS, Dataflow, and Cloud
+SQL over the VPC.
+
+```bash
+gcloud config set project <project>
+
+# 1. one-time infra: APIs, service account + IAM, Cloud SQL, GCS bucket,
+#    Secret Manager DSNs, VPC connector  (idempotent, safe to re-run)
+./scripts/gcp_bootstrap.sh
+
+# 2. apply the framework schema (needs private-IP reachability to Cloud SQL,
+#    e.g. a VM on the same VPC or Cloud Shell with private-services access)
+export HR_PG_DSN="$(gcloud secrets versions access latest --secret=hr-runner-dsn)"
+bash scripts/migrate.sh
+
+# 3. register the gcp environment row + template path (SQL in the
+#    "GCP deployment (bundled reference pipeline)" section below)
+
+# 4. build the runner image, create the Cloud Run Job, run the smoke suite
+./deploy/runner/deploy.sh
+```
+
+What `deploy.sh` does: builds `gcr.io/<project>/hr-qa-runner:latest` via Cloud
+Build (`deploy/runner/Dockerfile` + `cloudbuild.yaml`), creates/updates the
+`hr-qa-runner` job from `deploy/runner/job.yaml` (service account, VPC
+connector for Cloud SQL private IP, `HR_PG_DSN` from Secret Manager), sets a
+2-hour task timeout, then executes `--env gcp --suite smoke` and waits.
+
+Run other suites afterwards:
+
+```bash
+gcloud run jobs execute hr-qa-runner --region=us-central1 --wait \
+  --args='--env,gcp,--suite,regression'
+gcloud run jobs execute hr-qa-runner --region=us-central1 --wait \
+  --args='--env,gcp,--cases,TC-001,TC-005'
+```
+
+Files: `scripts/gcp_bootstrap.sh`, `deploy/runner/{Dockerfile,cloudbuild.yaml,job.yaml,deploy.sh}`.
+Notes: each regression case launches its own Dataflow job (cost); the VPC
+connector is required because Cloud SQL uses a private IP; the DB password
+lives only in Secret Manager (bootstrap rotates it).
+
 ## GCP deployment (bundled reference pipeline)
 
 ### 1. Network + database
