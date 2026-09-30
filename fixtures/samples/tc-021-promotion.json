@@ -1,0 +1,61 @@
+{
+ "assertions": [
+  {
+   "expected": 2,
+   "kind": "sql_scalar",
+   "name": "version_2",
+   "op": "eq",
+   "sql": "SELECT version FROM silver.workers_current WHERE worker_id = {target_worker}"
+  },
+  {
+   "expected": "Senior Engineer",
+   "kind": "sql_scalar",
+   "name": "new_title",
+   "op": "eq",
+   "sql": "SELECT job_profile FROM silver.workers_current WHERE worker_id = {target_worker}"
+  },
+  {
+   "expected": 1,
+   "kind": "sql_scalar",
+   "name": "one_history_row",
+   "op": "eq",
+   "sql": "SELECT COUNT(*) FROM silver.workers_history WHERE worker_id = {target_worker}"
+  },
+  {
+   "expected": 1,
+   "kind": "sql_scalar",
+   "name": "history_keeps_old_title",
+   "op": "eq",
+   "sql": "SELECT COUNT(*) FROM silver.workers_history WHERE worker_id = {target_worker} AND job_profile <> 'Senior Engineer'"
+  }
+ ],
+ "category": "scd4",
+ "description": "Title + salary change versions the worker; the old title is retained in history.",
+ "executions": 1,
+ "fixture_sequence": [
+  {
+   "as_of_date": "2026-09-29",
+   "generator": "initial_load",
+   "params": {
+    "n": 5
+   }
+  },
+  {
+   "as_of_date": "2026-09-30",
+   "generator": "promotion",
+   "params": {
+    "n": 5,
+    "new_salary": 150000,
+    "new_title": "Senior Engineer",
+    "target_index": 0
+   }
+  }
+ ],
+ "name": "SCD4: promotion changes title and salary",
+ "pipeline_id": "hr-workday-ndjson-v1",
+ "suites": [
+  "regression",
+  "scd4"
+ ],
+ "test_case_id": "TC-021"
+}
