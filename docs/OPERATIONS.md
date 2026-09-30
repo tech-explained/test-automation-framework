@@ -145,6 +145,16 @@ Notes: each regression case launches its own Dataflow job (cost); the VPC
 connector is required because Cloud SQL uses a private IP; the DB password
 lives only in Secret Manager (bootstrap rotates it).
 
+### Triggering on demand or on schedule (Cloud Composer)
+
+`deploy/composer/dags/hr_qa_tests.py` is a ready-to-upload DAG that executes
+the `hr-qa-runner` Cloud Run Job via `CloudRunExecuteJobOperator` and waits
+for it: `qa_smoke` → `qa_regression` (regression only if smoke is green).
+`SCHEDULE` defaults to `None` (on-demand: trigger from the Airflow UI or
+`dags trigger`); set it to a cron expression for scheduled runs. Setup
+(DAG upload, IAM for the Composer service account) is in
+`deploy/composer/README.md`.
+
 ## GCP deployment (bundled reference pipeline)
 
 ### 1. Network + database
