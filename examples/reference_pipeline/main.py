@@ -22,7 +22,7 @@ from datetime import date
 import apache_beam as beam
 from apache_beam.options.pipeline_options import PipelineOptions
 
-from pipeline.transforms import build_bronze_load, parse_args
+from examples.reference_pipeline.transforms import build_bronze_load, parse_args
 
 
 def run(argv=None) -> None:

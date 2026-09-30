@@ -12,8 +12,8 @@ If the pipeline under test uses different bronze identity semantics, write
 assertions with the ``sql_scalar`` / ``sql_row`` kinds against its own
 tables instead of ``file_rows``.
 
-Canonical home: ``pipeline/core.py`` re-exports these names so the bundled
-reference pipeline and the framework share one implementation.
+Canonical home: ``examples/reference_pipeline/core.py`` mirrors these names so
+the reference pipeline and the framework share one implementation.
 """
 
 from __future__ import annotations

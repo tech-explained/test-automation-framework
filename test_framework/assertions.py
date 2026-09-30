@@ -119,6 +119,10 @@ def _eval_file_rows(conn, assertion: dict, ctx: dict) -> tuple[Any, str | None]:
     file_id = ctx.get(f"file_id_{idx}") or ctx.get("file_id")
     if not file_id:
         raise RuntimeError("no file_id in assertion context")
+    # Batch mode: this file was merged into a shared file before ingest, so
+    # its file_id is shared with other cases' files. batch_line_base_{idx}
+    # is the file's 1-based first line inside the merged file (None per-file).
+    batch_base = ctx.get(f"batch_line_base_{idx}")
 
     good_hashes: Counter = Counter()   # sha256(raw line) -> count, parseable lines
     bad_lines: dict[int, str] = {}     # line_no -> raw, lines the loader rejects
@@ -134,18 +138,37 @@ def _eval_file_rows(conn, assertion: dict, ctx: dict) -> tuple[Any, str | None]:
             bad_lines[lineno] = raw
 
     with conn.cursor() as cur:
-        cur.execute(
-            "SELECT row_hash FROM bronze.raw_worker_events WHERE file_id = %s",
-            (file_id,))
-        bronze_hashes = Counter(r[0] for r in cur.fetchall())
-        cur.execute(
-            "SELECT line_no FROM bronze.raw_worker_rejects WHERE file_id = %s",
-            (file_id,))
-        reject_lines = {r[0] for r in cur.fetchall()}
+        if batch_base is None:
+            cur.execute(
+                "SELECT row_hash FROM bronze.raw_worker_events WHERE file_id = %s",
+                (file_id,))
+            bronze_hashes = Counter(r[0] for r in cur.fetchall())
+            cur.execute(
+                "SELECT line_no FROM bronze.raw_worker_rejects WHERE file_id = %s",
+                (file_id,))
+            reject_lines = {r[0] for r in cur.fetchall()}
+            expected_bad = set(bad_lines)
+        else:
+            # Scope bronze events to this case's worker-id namespace: every
+            # good line carries a Worker_ID of "{prefix}-Wnnnn".
+            cur.execute(
+                "SELECT row_hash FROM bronze.raw_worker_events "
+                "WHERE file_id = %s AND (worker_json ->> 'Worker_ID') LIKE %s",
+                (file_id, ctx["prefix"] + "-%"))
+            bronze_hashes = Counter(r[0] for r in cur.fetchall())
+            # Rejects are keyed by merged-file line number; keep only this
+            # file's line range and shift the expected bad lines by the base.
+            nlines = len(content.splitlines())
+            cur.execute(
+                "SELECT line_no FROM bronze.raw_worker_rejects WHERE file_id = %s",
+                (file_id,))
+            reject_lines = {ln for (ln,) in cur.fetchall()
+                            if batch_base <= ln < batch_base + nlines}
+            expected_bad = {batch_base + ln - 1 for ln in bad_lines}
 
     missing_good = list((good_hashes - bronze_hashes).elements())
     extra_bronze = list((bronze_hashes - good_hashes).elements())
-    missing_bad = [ln for ln in bad_lines if ln not in reject_lines]
+    missing_bad = [ln for ln in expected_bad if ln not in reject_lines]
     unaccounted = len(missing_good) + len(extra_bronze) + len(missing_bad)
     msg = None if unaccounted == 0 else (
         f"{unaccounted} unaccounted lines for file_{idx}: "

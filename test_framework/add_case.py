@@ -137,19 +137,22 @@ def plan(spec: dict) -> str:
         f"  assertions: {n_assert}",
         f"  suites:     {', '.join(suites) if suites else '(none)'}",
         f"  executions: {spec.get('executions', 1)}",
+        f"  batchable:  {spec.get('batchable', True)}",
     ]
     return "\n".join(lines)
 
 
 def apply(spec: dict) -> None:
     tc = spec["test_case_id"]
+    batchable = bool(spec.get("batchable", True))
     with psycopg.connect(_dsn()) as conn, conn.cursor() as cur:
         cur.execute(
             """
             INSERT INTO tf.test_cases
                 (test_case_id, name, category, description, executions,
-                 fixture_sequence, pipeline_id, expectations, enabled)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, TRUE)
+                 fixture_sequence, pipeline_id, expectations, enabled,
+                 batchable)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, TRUE, %s)
             ON CONFLICT (test_case_id) DO UPDATE SET
                 name = EXCLUDED.name, category = EXCLUDED.category,
                 description = EXCLUDED.description,
@@ -157,13 +160,14 @@ def apply(spec: dict) -> None:
                 fixture_sequence = EXCLUDED.fixture_sequence,
                 pipeline_id = EXCLUDED.pipeline_id,
                 expectations = EXCLUDED.expectations,
-                enabled = TRUE
+                enabled = TRUE,
+                batchable = EXCLUDED.batchable
             """,
             (tc, spec["name"], spec["category"], spec["description"],
              int(spec.get("executions", 1)),
              Jsonb(spec["fixture_sequence"]),
              spec.get("pipeline_id", "hr-workday-ndjson-v1"),
-             Jsonb({"assertions": spec["assertions"]})),
+             Jsonb({"assertions": spec["assertions"]}), batchable),
         )
         for suite in spec.get("suites", []):
             cur.execute("SELECT 1 FROM tf.suites WHERE suite_id = %s", (suite,))

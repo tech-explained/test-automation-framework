@@ -3,7 +3,7 @@
 -- ============================ TC-009 =====================================
 INSERT INTO tf.test_cases
     (test_case_id, name, category, description, executions, fixture_sequence,
-     pipeline_id, expectations, enabled)
+     pipeline_id, expectations, enabled, batchable)
 VALUES ('TC-009', 'Edge: duplicate worker rows inside one file (last wins)', 'edge',
  'Worker W0000 appears twice with different departments. Both raw lines stay in bronze; the merge dedupes keeping the LAST line; one current row, zero history, audit notes the duplicate.',
  1,
@@ -11,7 +11,7 @@ VALUES ('TC-009', 'Edge: duplicate worker rows inside one file (last wins)', 'ed
  'hr-workday-ndjson-v1',
  '{"assertions": [
    {"name": "bronze_keeps_both_lines", "kind": "sql_scalar",
-    "sql": "SELECT COUNT(*) FROM bronze.raw_worker_events WHERE file_id = {file_id}::uuid",
+    "sql": "SELECT COUNT(*) FROM bronze.raw_worker_events WHERE file_id = {file_id}::uuid AND worker_json ->> ''Worker_ID'' LIKE {prefix} || ''-W%''",
     "op": "eq", "expected": 6},
    {"name": "one_current_row", "kind": "sql_scalar",
     "sql": "SELECT COUNT(*) FROM silver.workers_current WHERE worker_id LIKE {prefix} || ''-W%''",
@@ -28,18 +28,19 @@ VALUES ('TC-009', 'Edge: duplicate worker rows inside one file (last wins)', 'ed
    {"name": "dq_flags_duplicates", "kind": "sql_scalar",
     "sql": "SELECT COUNT(*) FROM ops.file_ingestions WHERE file_id = {file_id}::uuid AND dq_warnings::text LIKE ''%duplicate_workers_in_file%''",
     "op": "eq", "expected": 1}
- ]}', TRUE)
+ ]}', TRUE, TRUE)
 ON CONFLICT (test_case_id) DO UPDATE SET
   name = EXCLUDED.name, category = EXCLUDED.category,
   description = EXCLUDED.description, executions = EXCLUDED.executions,
   fixture_sequence = EXCLUDED.fixture_sequence,
   pipeline_id = EXCLUDED.pipeline_id,
-  expectations = EXCLUDED.expectations, enabled = EXCLUDED.enabled;
+  expectations = EXCLUDED.expectations, enabled = EXCLUDED.enabled,
+  batchable = EXCLUDED.batchable;
 
 -- ============================ TC-010 =====================================
 INSERT INTO tf.test_cases
     (test_case_id, name, category, description, executions, fixture_sequence,
-     pipeline_id, expectations, enabled)
+     pipeline_id, expectations, enabled, batchable)
 VALUES ('TC-010', 'Edge: unknown RaaS fields land in attributes (schema drift safe)', 'edge',
  'Workers carry fields the silver schema never heard of (Favorite_Snack, Nickname). Load succeeds and the extras are preserved verbatim in attributes.',
  1,
@@ -55,18 +56,19 @@ VALUES ('TC-010', 'Edge: unknown RaaS fields land in attributes (schema drift sa
    {"name": "no_rejects", "kind": "sql_scalar",
     "sql": "SELECT COUNT(*) FROM bronze.raw_worker_rejects WHERE file_id = {file_id}::uuid",
     "op": "eq", "expected": 0}
- ]}', TRUE)
+ ]}', TRUE, TRUE)
 ON CONFLICT (test_case_id) DO UPDATE SET
   name = EXCLUDED.name, category = EXCLUDED.category,
   description = EXCLUDED.description, executions = EXCLUDED.executions,
   fixture_sequence = EXCLUDED.fixture_sequence,
   pipeline_id = EXCLUDED.pipeline_id,
-  expectations = EXCLUDED.expectations, enabled = EXCLUDED.enabled;
+  expectations = EXCLUDED.expectations, enabled = EXCLUDED.enabled,
+  batchable = EXCLUDED.batchable;
 
 -- ============================ TC-011 =====================================
 INSERT INTO tf.test_cases
     (test_case_id, name, category, description, executions, fixture_sequence,
-     pipeline_id, expectations, enabled)
+     pipeline_id, expectations, enabled, batchable)
 VALUES ('TC-011', 'Negative: unparseable dates become NULL, row still loads', 'negative',
  'Two workers have Hire_Date = ''not-a-date''. The safe parser nulls the field instead of failing the batch; a DQ warning is recorded.',
  1,
@@ -82,18 +84,19 @@ VALUES ('TC-011', 'Negative: unparseable dates become NULL, row still loads', 'n
    {"name": "dq_warns_invalid_date", "kind": "sql_scalar",
     "sql": "SELECT COUNT(*) FROM ops.file_ingestions WHERE file_id = {file_id}::uuid AND dq_warnings::text LIKE ''%invalid_hire_date%''",
     "op": "eq", "expected": 1}
- ]}', TRUE)
+ ]}', TRUE, FALSE)
 ON CONFLICT (test_case_id) DO UPDATE SET
   name = EXCLUDED.name, category = EXCLUDED.category,
   description = EXCLUDED.description, executions = EXCLUDED.executions,
   fixture_sequence = EXCLUDED.fixture_sequence,
   pipeline_id = EXCLUDED.pipeline_id,
-  expectations = EXCLUDED.expectations, enabled = EXCLUDED.enabled;
+  expectations = EXCLUDED.expectations, enabled = EXCLUDED.enabled,
+  batchable = EXCLUDED.batchable;
 
 -- ============================ TC-012 =====================================
 INSERT INTO tf.test_cases
     (test_case_id, name, category, description, executions, fixture_sequence,
-     pipeline_id, expectations, enabled)
+     pipeline_id, expectations, enabled, batchable)
 VALUES ('TC-012', 'Edge: unicode names survive byte-for-byte', 'edge',
  'Names with diacritics and CJK characters must round-trip through bronze JSONB and silver text columns exactly.',
  1,
@@ -109,18 +112,19 @@ VALUES ('TC-012', 'Edge: unicode names survive byte-for-byte', 'edge',
    {"name": "silver_3", "kind": "sql_scalar",
     "sql": "SELECT COUNT(*) FROM silver.workers_current WHERE worker_id LIKE {prefix} || ''-W%''",
     "op": "eq", "expected": 3}
- ]}', TRUE)
+ ]}', TRUE, TRUE)
 ON CONFLICT (test_case_id) DO UPDATE SET
   name = EXCLUDED.name, category = EXCLUDED.category,
   description = EXCLUDED.description, executions = EXCLUDED.executions,
   fixture_sequence = EXCLUDED.fixture_sequence,
   pipeline_id = EXCLUDED.pipeline_id,
-  expectations = EXCLUDED.expectations, enabled = EXCLUDED.enabled;
+  expectations = EXCLUDED.expectations, enabled = EXCLUDED.enabled,
+  batchable = EXCLUDED.batchable;
 
 -- ============================ TC-013 =====================================
 INSERT INTO tf.test_cases
     (test_case_id, name, category, description, executions, fixture_sequence,
-     pipeline_id, expectations, enabled)
+     pipeline_id, expectations, enabled, batchable)
 VALUES ('TC-013', 'Edge: very long text values are not truncated', 'edge',
  'A 5000-character free-text field rides in attributes (JSONB). No silent truncation anywhere in the path.',
  1,
@@ -133,18 +137,19 @@ VALUES ('TC-013', 'Edge: very long text values are not truncated', 'edge',
    {"name": "silver_5", "kind": "sql_scalar",
     "sql": "SELECT COUNT(*) FROM silver.workers_current WHERE worker_id LIKE {prefix} || ''-W%''",
     "op": "eq", "expected": 5}
- ]}', TRUE)
+ ]}', TRUE, TRUE)
 ON CONFLICT (test_case_id) DO UPDATE SET
   name = EXCLUDED.name, category = EXCLUDED.category,
   description = EXCLUDED.description, executions = EXCLUDED.executions,
   fixture_sequence = EXCLUDED.fixture_sequence,
   pipeline_id = EXCLUDED.pipeline_id,
-  expectations = EXCLUDED.expectations, enabled = EXCLUDED.enabled;
+  expectations = EXCLUDED.expectations, enabled = EXCLUDED.enabled,
+  batchable = EXCLUDED.batchable;
 
 -- ============================ TC-014 =====================================
 INSERT INTO tf.test_cases
     (test_case_id, name, category, description, executions, fixture_sequence,
-     pipeline_id, expectations, enabled)
+     pipeline_id, expectations, enabled, batchable)
 VALUES ('TC-014', 'Edge: empty file completes cleanly', 'negative',
  'A zero-line file is a valid no-op: ingestion completes, nothing lands in silver, DQ notes the empty file.',
  1,
@@ -163,18 +168,19 @@ VALUES ('TC-014', 'Edge: empty file completes cleanly', 'negative',
    {"name": "dq_notes_empty_file", "kind": "sql_scalar",
     "sql": "SELECT COUNT(*) FROM ops.file_ingestions WHERE file_id = {file_id}::uuid AND dq_warnings::text LIKE ''%empty_file%''",
     "op": "eq", "expected": 1}
- ]}', TRUE)
+ ]}', TRUE, FALSE)
 ON CONFLICT (test_case_id) DO UPDATE SET
   name = EXCLUDED.name, category = EXCLUDED.category,
   description = EXCLUDED.description, executions = EXCLUDED.executions,
   fixture_sequence = EXCLUDED.fixture_sequence,
   pipeline_id = EXCLUDED.pipeline_id,
-  expectations = EXCLUDED.expectations, enabled = EXCLUDED.enabled;
+  expectations = EXCLUDED.expectations, enabled = EXCLUDED.enabled,
+  batchable = EXCLUDED.batchable;
 
 -- ============================ TC-015 =====================================
 INSERT INTO tf.test_cases
     (test_case_id, name, category, description, executions, fixture_sequence,
-     pipeline_id, expectations, enabled)
+     pipeline_id, expectations, enabled, batchable)
 VALUES ('TC-015', 'Negative: file with only invalid lines', 'negative',
  'Every line is corrupt. The run still completes (nothing to merge is not a failure); all lines are quarantined; silver is untouched.',
  1,
@@ -196,18 +202,19 @@ VALUES ('TC-015', 'Negative: file with only invalid lines', 'negative',
    {"name": "merge_saw_zero_staged", "kind": "sql_scalar",
     "sql": "SELECT COUNT(*) FROM ops.audit_log WHERE action = ''silver.merge.completed'' AND entity_id = {file_id} AND (details->>''staged_workers'')::int = 0",
     "op": "eq", "expected": 1}
- ]}', TRUE)
+ ]}', TRUE, FALSE)
 ON CONFLICT (test_case_id) DO UPDATE SET
   name = EXCLUDED.name, category = EXCLUDED.category,
   description = EXCLUDED.description, executions = EXCLUDED.executions,
   fixture_sequence = EXCLUDED.fixture_sequence,
   pipeline_id = EXCLUDED.pipeline_id,
-  expectations = EXCLUDED.expectations, enabled = EXCLUDED.enabled;
+  expectations = EXCLUDED.expectations, enabled = EXCLUDED.enabled,
+  batchable = EXCLUDED.batchable;
 
 -- ============================ TC-016 =====================================
 INSERT INTO tf.test_cases
     (test_case_id, name, category, description, executions, fixture_sequence,
-     pipeline_id, expectations, enabled)
+     pipeline_id, expectations, enabled, batchable)
 VALUES ('TC-016', 'SCD4: stale (out-of-order) file never regresses silver', 'scd4',
  'A newer snapshot is processed first, then an older-dated file arrives. Bronze keeps both raw files; silver ignores every stale row.',
  1,
@@ -230,18 +237,19 @@ VALUES ('TC-016', 'SCD4: stale (out-of-order) file never regresses silver', 'scd
    {"name": "current_asof_stays_newer", "kind": "sql_scalar",
     "sql": "SELECT as_of_date::text FROM silver.workers_current WHERE worker_id = {target_worker}",
     "op": "eq", "expected": "2026-09-29"}
- ]}', TRUE)
+ ]}', TRUE, FALSE)
 ON CONFLICT (test_case_id) DO UPDATE SET
   name = EXCLUDED.name, category = EXCLUDED.category,
   description = EXCLUDED.description, executions = EXCLUDED.executions,
   fixture_sequence = EXCLUDED.fixture_sequence,
   pipeline_id = EXCLUDED.pipeline_id,
-  expectations = EXCLUDED.expectations, enabled = EXCLUDED.enabled;
+  expectations = EXCLUDED.expectations, enabled = EXCLUDED.enabled,
+  batchable = EXCLUDED.batchable;
 
 -- ============================ TC-017 =====================================
 INSERT INTO tf.test_cases
     (test_case_id, name, category, description, executions, fixture_sequence,
-     pipeline_id, expectations, enabled)
+     pipeline_id, expectations, enabled, batchable)
 VALUES ('TC-017', 'SCD4: terminate then rehire produces version 3 with 2 history rows', 'scd4',
  'Active -> Terminated -> Active across three snapshots. Full version chain: v1 (history), v2 Terminated (history), v3 Active (current).',
  1,
@@ -265,18 +273,19 @@ VALUES ('TC-017', 'SCD4: terminate then rehire produces version 3 with 2 history
    {"name": "terminated_version_in_history", "kind": "sql_scalar",
     "sql": "SELECT COUNT(*) FROM silver.workers_history WHERE worker_id = {target_worker} AND worker_status = ''Terminated''",
     "op": "eq", "expected": 1}
- ]}', TRUE)
+ ]}', TRUE, TRUE)
 ON CONFLICT (test_case_id) DO UPDATE SET
   name = EXCLUDED.name, category = EXCLUDED.category,
   description = EXCLUDED.description, executions = EXCLUDED.executions,
   fixture_sequence = EXCLUDED.fixture_sequence,
   pipeline_id = EXCLUDED.pipeline_id,
-  expectations = EXCLUDED.expectations, enabled = EXCLUDED.enabled;
+  expectations = EXCLUDED.expectations, enabled = EXCLUDED.enabled,
+  batchable = EXCLUDED.batchable;
 
 -- ============================ TC-018 =====================================
 INSERT INTO tf.test_cases
     (test_case_id, name, category, description, executions, fixture_sequence,
-     pipeline_id, expectations, enabled)
+     pipeline_id, expectations, enabled, batchable)
 VALUES ('TC-018', 'Gold: point-in-time history view reconstructs past state', 'scd4',
  'After a department change, gold.vw_worker_history exposes both versions: the superseded one (is_current=false, old dept) and the current one.',
  1,
@@ -296,18 +305,19 @@ VALUES ('TC-018', 'Gold: point-in-time history view reconstructs past state', 's
    {"name": "old_version_has_valid_to", "kind": "sql_scalar",
     "sql": "SELECT COUNT(*) FROM gold.vw_worker_history WHERE worker_id = {target_worker} AND is_current = false AND valid_to IS NOT NULL",
     "op": "eq", "expected": 1}
- ]}', TRUE)
+ ]}', TRUE, TRUE)
 ON CONFLICT (test_case_id) DO UPDATE SET
   name = EXCLUDED.name, category = EXCLUDED.category,
   description = EXCLUDED.description, executions = EXCLUDED.executions,
   fixture_sequence = EXCLUDED.fixture_sequence,
   pipeline_id = EXCLUDED.pipeline_id,
-  expectations = EXCLUDED.expectations, enabled = EXCLUDED.enabled;
+  expectations = EXCLUDED.expectations, enabled = EXCLUDED.enabled,
+  batchable = EXCLUDED.batchable;
 
 -- ============================ TC-019 =====================================
 INSERT INTO tf.test_cases
     (test_case_id, name, category, description, executions, fixture_sequence,
-     pipeline_id, expectations, enabled)
+     pipeline_id, expectations, enabled, batchable)
 VALUES ('TC-019', 'Auditability: every artifact traces back to the file', 'audit',
  'Bronze rows carry file_name + line_no; ingestion, pipeline run, merge audit and test-framework result rows all exist and link together.',
  1,
@@ -315,7 +325,7 @@ VALUES ('TC-019', 'Auditability: every artifact traces back to the file', 'audit
  'hr-workday-ndjson-v1',
  '{"assertions": [
    {"name": "bronze_lineage_complete", "kind": "sql_scalar",
-    "sql": "SELECT COUNT(*) FROM bronze.raw_worker_events WHERE file_id = {file_id}::uuid AND file_name IS NOT NULL AND line_no IS NOT NULL",
+    "sql": "SELECT COUNT(*) FROM bronze.raw_worker_events WHERE file_id = {file_id}::uuid AND worker_json ->> ''Worker_ID'' LIKE {prefix} || ''-W%'' AND file_name IS NOT NULL AND line_no IS NOT NULL",
     "op": "eq", "expected": 3},
    {"name": "ingestion_timestamps", "kind": "sql_scalar",
     "sql": "SELECT COUNT(*) FROM ops.file_ingestions WHERE file_id = {file_id}::uuid AND status = ''completed'' AND started_at IS NOT NULL AND finished_at IS NOT NULL",
@@ -332,18 +342,19 @@ VALUES ('TC-019', 'Auditability: every artifact traces back to the file', 'audit
    {"name": "test_result_persisted", "kind": "sql_scalar",
     "sql": "SELECT COUNT(*) FROM tf.test_case_results WHERE test_case_id = ''TC-019'' AND status IN (''running'', ''passed'', ''failed'')",
     "op": "gte", "expected": 1}
- ]}', TRUE)
+ ]}', TRUE, TRUE)
 ON CONFLICT (test_case_id) DO UPDATE SET
   name = EXCLUDED.name, category = EXCLUDED.category,
   description = EXCLUDED.description, executions = EXCLUDED.executions,
   fixture_sequence = EXCLUDED.fixture_sequence,
   pipeline_id = EXCLUDED.pipeline_id,
-  expectations = EXCLUDED.expectations, enabled = EXCLUDED.enabled;
+  expectations = EXCLUDED.expectations, enabled = EXCLUDED.enabled,
+  batchable = EXCLUDED.batchable;
 
 -- ============================ TC-020 =====================================
 INSERT INTO tf.test_cases
     (test_case_id, name, category, description, executions, fixture_sequence,
-     pipeline_id, expectations, enabled)
+     pipeline_id, expectations, enabled, batchable)
 VALUES ('TC-020', 'DQ: high null-email ratio warns but never blocks the load', 'dq',
  '60% of workers miss Email. The load completes (warnings are advisory), silver has all 10 workers, and dq_warnings records the ratio.',
  1,
@@ -362,13 +373,14 @@ VALUES ('TC-020', 'DQ: high null-email ratio warns but never blocks the load', '
    {"name": "dq_ratio_value", "kind": "sql_scalar",
     "sql": "SELECT (w->>''ratio'')::float FROM ops.file_ingestions, jsonb_array_elements(dq_warnings) AS w WHERE file_id = {file_id}::uuid AND w->>''check'' = ''null_email_ratio''",
     "op": "gte", "expected": 0.6}
- ]}', TRUE)
+ ]}', TRUE, FALSE)
 ON CONFLICT (test_case_id) DO UPDATE SET
   name = EXCLUDED.name, category = EXCLUDED.category,
   description = EXCLUDED.description, executions = EXCLUDED.executions,
   fixture_sequence = EXCLUDED.fixture_sequence,
   pipeline_id = EXCLUDED.pipeline_id,
-  expectations = EXCLUDED.expectations, enabled = EXCLUDED.enabled;
+  expectations = EXCLUDED.expectations, enabled = EXCLUDED.enabled,
+  batchable = EXCLUDED.batchable;
 
 -- ============================ suites =====================================
 INSERT INTO tf.suites (suite_id, display_name, test_case_ids, active) VALUES

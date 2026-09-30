@@ -52,7 +52,7 @@ def test_external_passes_env_and_actor_through():
 
 
 def test_external_missing_adapter_path_raises():
-    with pytest.raises(RuntimeError, match="ingest_adapter is not set"):
+    with pytest.raises(RuntimeError, match="has no ingest_adapter"):
         PA.load_ingest(_env(), {})
 
 
@@ -85,45 +85,8 @@ def test_unknown_mode_raises():
         PA.load_ingest(_env(pipeline_mode="rocket"), {})
 
 
-def test_builtin_local_wraps_launcher(monkeypatch):
-    from pipeline import launcher
-
-    calls = {}
-
-    def fake_launcher_ingest(uri, *, file_name, as_of_date, mode, actor, dataflow):
-        calls.update(uri=uri, mode=mode, dataflow=dataflow, actor=actor)
-        return {"file_id": "built-in-1", "status": "completed", "error": None}
-
-    monkeypatch.setattr(launcher, "ingest_file", fake_launcher_ingest)
-    ingest = PA.load_ingest({"env_id": "local", "pipeline_mode": "local"}, {})
-    res = ingest("file.ndjson", file_name="f.ndjson",
-                 as_of_date=date(2026, 9, 30), actor="t")
-    assert res["file_id"] == "built-in-1"
-    assert calls["mode"] == "local"
-    assert calls["dataflow"] is None
-    assert calls["actor"] == "t"
-
-
-def test_builtin_dataflow_builds_cfg(monkeypatch):
-    import os
-    from pipeline import launcher
-
-    monkeypatch.setenv("DATAFLOW_PG_DSN_SECRET", "hr-postgres-dsn")
-    seen = {}
-    monkeypatch.setattr(
-        launcher, "ingest_file",
-        lambda uri, **kw: (seen.update(kw), {"file_id": "df-1", "status": "completed", "error": None})[1])
-    env = {"env_id": "gcp", "pipeline_mode": "dataflow",
-           "gcp_project": "p", "dataflow_region": "us-central1"}
-    ingest = PA.load_ingest(env, {"flex_template_gcs_path": "gs://b/t.json"})
-    ingest("gs://b/f.ndjson", file_name="f.ndjson",
-           as_of_date=date(2026, 9, 30), actor="t")
-    assert seen["mode"] == "dataflow"
-    assert seen["dataflow"]["pg_dsn_secret"] == "hr-postgres-dsn"
-    assert seen["dataflow"]["template_gcs_path"] == "gs://b/t.json"
-
-
-def test_builtin_dataflow_missing_secret_raises(monkeypatch):
-    monkeypatch.delenv("DATAFLOW_PG_DSN_SECRET", raising=False)
-    with pytest.raises(RuntimeError, match="DATAFLOW_PG_DSN_SECRET"):
-        PA.load_ingest({"env_id": "gcp", "pipeline_mode": "dataflow"}, {})
+def test_non_external_mode_raises():
+    # 'local'/'dataflow' built-in modes are gone; everything goes through
+    # the external adapter seam.
+    with pytest.raises(RuntimeError, match="only supports pipeline_mode='external'"):
+        PA.load_ingest(_env(pipeline_mode="local"), {})

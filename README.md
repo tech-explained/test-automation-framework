@@ -1,23 +1,50 @@
-# Test Automation Framework — HR Data Pipeline QA
+# Test Automation Framework
 
-Metadata-driven automated QA for a production-grade GCP HR data pipeline
-(Workday RaaS NDJSON → GCS → Dataflow → PostgreSQL, bronze/silver/gold,
-SCD Type 4, content-addressed idempotency).
+Metadata-driven QA for **any** data pipeline. You give the framework one
+function — *load this file through my pipeline* — and it generates
+deterministic fixtures, loads them through your pipeline, and evaluates
+stored SQL assertions against your database. No YAML, no config drift: test
+cases, environments, suites, and every result live in PostgreSQL (`tf.*`).
+
+## The one seam: the ingest adapter
+
+The framework never touches your pipeline's internals. It calls one function
+per fixture file:
+
+```python
+def ingest_file(uri, *, file_name, as_of_date, env, actor) -> dict:
+    """Load the fixture file at `uri` through the pipeline under test.
+
+    MUST block until the load is finished — the runner evaluates assertions
+    immediately after this returns.
+    Returns {"file_id": str, "status": "completed"|"failed"|"skipped_duplicate",
+             "error": str | None}.
+    `file_id` feeds the {file_id} assertion placeholder: use whatever file
+    identity your pipeline has (registry id, load id, ...).
+    """
+```
+
+Point `tf.environments.ingest_adapter` at the dotted path of your adapter
+(`module.path:function_name`). A complete working example is at
+`examples/reference_adapter.py`.
 
 ## Quickstart (local, no GCP needed)
 
 ```bash
 export HR_PG_DSN="postgresql://hatch:hatch@127.0.0.1/hrdemo"
 
-# 1. apply migrations + seed the QA metadata
+# 1. apply migrations + seed the QA metadata (idempotent)
 bash scripts/migrate.sh
 
-# 2. unit tests (40 tests)
+# 2. unit tests
 python3 -m pytest tests/unit -q
 
-# 3. end-to-end QA: smoke suite, then full regression (20 cases)
+# 3. end-to-end QA: smoke suite, then full regression (23 cases)
 python3 -m test_framework.runner --env local --suite smoke
 python3 -m test_framework.runner --env local --suite regression
+
+# 4. same regression in batch ingest mode (fewer pipeline launches)
+python3 -m test_framework.runner --env local --suite regression --ingest-mode batch
 ```
 
 Reports land in `test_framework/reports/<run_id>.md`; every run, case, and
@@ -27,43 +54,74 @@ assertion is also persisted in `tf.*` tables.
 
 | Path | What |
 |---|---|
-| `pipeline/` | Beam/Dataflow pipeline: `core` (pure logic), `transforms` (Beam), `dbio` (Postgres I/O), `main` (Beam entrypoint), `launcher` (orchestrator). `Dockerfile` + `metadata.json` for the Flex Template. |
-| `db/migrations/` | `001` schemas → `002` bronze → `003` silver (SCD4) → `004` gold views → `005` ops/audit → `006` merge + DQ procedures → `007` QA metadata schema. |
-| `db/seeds/` | QA framework metadata: environments, pipeline, suites, 20 test cases. Re-runnable (`DO UPDATE`). |
-| `test_framework/` | `runner` (orchestrator), `fixtures` (deterministic NDJSON generators), `storage` (local/GCS backends), `assertions` (SQL assertion engine), `reporting` (Markdown reports). |
-| `tests/unit/` | pytest suite for core logic, fixtures, assertions. |
+| `test_framework/` | The framework: `runner` (orchestrator), `fixtures` (deterministic NDJSON generators), `storage` (local/GCS backends), `pipeline_adapter` (the external-only adapter seam), `assertions` (SQL assertion engine), `batching` (batch ingest planner), `reporting` (Markdown reports). Requirements: `psycopg`, `google-cloud-storage`. |
+| `db/migrations/` | Framework schema (`tf.*`, `007`), external-pipeline seams (`008`, `010`), batch ingest (`009`). The `bronze.*` / `silver.*` / `ops.*` / `gold.*` migrations are the reference pipeline's schema, not the framework's. |
+| `db/seeds/` | QA metadata: environments, suites, 23 test cases. Re-runnable (`DO UPDATE`). |
+| `examples/` | **Not the framework.** `reference_pipeline/` is a working HR pipeline (the framework's original example target); `reference_adapter.py` implements the ingest contract against it. The seeded `local` env uses it (`ingest_adapter='examples.reference_adapter:ingest_file'`), so a fresh checkout runs fully offline. |
+| `tests/unit/` | pytest suite for the framework: fixtures, assertions, batching, adapter (46 tests). |
+| `fixtures/samples/` | JSON test-case specs consumed by `test_framework/add_case.py`. |
+| `deploy/runner/` | Cloud Run Job packaging for running the framework itself on GCP. |
+| `deploy/composer/` | Cloud Composer DAG that triggers the runner job. |
 | `docs/` | `ARCHITECTURE.md`, `TEST_PLAN.md`, `OPERATIONS.md`. |
 
-## How a file flows through the system
+## How a run flows
 
-1. **Ingest** (`pipeline/launcher.ingest_file`): reads the NDJSON from `gs://`
-   (or a local path in `local` mode), SHA-256 hashes the bytes, derives a
-   content-addressed `file_id` (UUID5). Byte-identical replays short-circuit
-   as `skipped_duplicate` — before any bronze write — with an audit row.
-2. **Bronze** (Beam/Dataflow or local loader): one row per NDJSON line into
-   `bronze.raw_worker_events`; malformed lines and rows without `Worker_ID`
-   go to `bronze.raw_worker_rejects`. PK `(file_id, line_no)` makes bronze
-   writes naturally idempotent.
-3. **Silver** (`silver.apply_bronze_batch`, one transaction): SCD Type 4 —
-   changed workers get a new `workers_current` version and the old version
-   moves to `workers_history`; unchanged workers only advance
-   `last_seen_as_of_date`; stale (out-of-order) files never regress silver.
-   Unknown RaaS fields are preserved in `attributes JSONB`.
-4. **Gold**: views for current dim, full history, headcount by department,
-   terminations by month, and missing-from-latest-snapshot.
-5. **Ops**: `ops.file_ingestions` (one row per content hash), `ops.pipeline_runs`,
-   and an append-only `ops.audit_log` record every state transition.
+1. **Plan** — the runner resolves the cases in the suite and derives a
+   per-run worker prefix (`TC001-<run8>`), so cases and runs never
+   contaminate each other. One advisory lock per environment
+   (`tf-run:<env_id>`) serializes runs against the same database.
+2. **Fixtures** — deterministic NDJSON generators produce the byte-exact
+   files each case declares (worker ids are namespaced under the run prefix).
+3. **Storage** — files are uploaded through the environment's storage backend
+   (local dir or GCS).
+4. **Ingest** — the runner calls your adapter's `ingest_file(...)` for each
+   file (per-file mode) or once per merged batch (batch mode). The adapter
+   must block until the load finishes.
+5. **Assert** — the stored SQL expectations for each case are evaluated with
+   `{placeholders}` bound from the run context (`prefix`, `file_id`,
+   `as_of_*`, `target_worker`, ...). Four kinds: `sql_scalar`, `sql_row`,
+   `file_bytes`, `file_rows`.
+6. **Report** — a Markdown report is written and the full result tree is
+   persisted in `tf.*` (`test_runs.summary` carries totals, ingest mode, and
+   the batch plan).
 
-## QA framework
+## Batch ingest mode
 
-No YAML, no config files. Test cases, fixture sequences, assertion SQL,
-environments, and suites live in `tf.*` tables; results are persisted per
-run/case/execution/assertion. The runner generates deterministic fixtures,
-uploads them through the storage backend, orchestrates the pipeline, then
-evaluates the stored SQL assertions with `{placeholders}` bound from the run
-context. See `docs/TEST_PLAN.md`.
+`--ingest-mode per-file` (default) calls the adapter once per fixture file —
+maximum isolation, one pipeline launch per file. `--ingest-mode batch` merges
+batch-eligible cases' fixture files by `as_of_date` into one NDJSON per date
+and calls the adapter once per group: the latest regression went from
+**34 launches to 15**, all 23 cases green.
 
-## GCP deployment
+Eligibility is automatic: a case rides the batch unless it is flagged
+`batchable=FALSE`, runs more than one execution, uses a poison generator
+(malformed/invalid/empty fixtures), or its fixture files are byte-identical
+(a replay test). Cases that stay solo ingest individually. See
+`docs/ARCHITECTURE.md` and the batch contract in
+`test_framework/batching.py`.
 
-See `docs/OPERATIONS.md` for the Flex Template build, Secret Manager wiring,
-IAM, networking (Private IP Cloud SQL), and the `gcp` environment row.
+## Plug in your pipeline
+
+1. Copy `examples/reference_adapter.py` into your codebase. It shows the full
+   pattern: trigger your job (Dataflow, Spark, dbt, ...), **block until it
+   completes**, return your file identity.
+2. Register your environment row with
+   `pipeline_mode='external'` and
+   `ingest_adapter='mycompany.qa_adapter:ingest_file'`
+   (see `docs/OPERATIONS.md`).
+3. Author test cases against your own tables with
+   `python3 -m test_framework.add_case --spec fixtures/samples/your-case.json`
+   (dry-run validation first, `--apply` to upsert).
+
+Assertion SQL is yours too: each case's `expectations` is arbitrary SQL
+against your database. The 23 seeded cases target the reference schema;
+keep them if your pipeline writes those tables, otherwise write your own.
+The four assertion kinds are pipeline-agnostic except `file_rows`, which
+verifies the framework's bronze contract (sha256-of-raw-line row identity,
+`Worker_ID` natural key — see `test_framework/lineparse.py`).
+
+## Deployment
+
+See `docs/OPERATIONS.md` — the framework needs only PostgreSQL, a fixture
+bucket, and your adapter. It runs on a laptop, a VM, or a Cloud Run Job
+(`deploy/runner/`), with optional Composer scheduling (`deploy/composer/`).

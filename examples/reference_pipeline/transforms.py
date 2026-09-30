@@ -16,7 +16,7 @@ from apache_beam import pvalue
 from apache_beam.transforms.userstate import ReadModifyWriteStateSpec
 from apache_beam.coders import VarIntCoder
 
-from pipeline import core
+from examples.reference_pipeline import core
 
 
 # ---------------------------------------------------------------------------
@@ -106,7 +106,7 @@ class _BronzeWriterBase(beam.DoFn):
     def _flush(self):
         if not self._buf:
             return
-        from pipeline import dbio  # noqa: PLC0415
+        from examples.reference_pipeline import dbio  # noqa: PLC0415
 
         try:
             n = self._write_batch(self._conn, self._buf)
@@ -142,7 +142,7 @@ class _BronzeWriterBase(beam.DoFn):
 
 class WriteBronzeEvents(_BronzeWriterBase):
     def _write_batch(self, conn, buf):
-        from pipeline import dbio  # noqa: PLC0415
+        from examples.reference_pipeline import dbio  # noqa: PLC0415
 
         return dbio.write_bronze_batch(conn, buf)
 
@@ -152,7 +152,7 @@ class WriteBronzeEvents(_BronzeWriterBase):
 
 class WriteBronzeRejects(_BronzeWriterBase):
     def _write_batch(self, conn, buf):
-        from pipeline import dbio  # noqa: PLC0415
+        from examples.reference_pipeline import dbio  # noqa: PLC0415
 
         return dbio.write_rejects_batch(conn, buf)
 

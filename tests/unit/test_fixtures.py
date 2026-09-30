@@ -23,25 +23,29 @@ def test_deterministic_bytes():
     assert a == b
 
 
+def _canon(obj):
+    """Stable canonical form for business-data comparison (test-local)."""
+    return json.dumps(obj, sort_keys=True, separators=(",", ":"),
+                      ensure_ascii=True, default=str)
+
+
 def test_shuffle_changes_bytes_not_data():
-    from pipeline import core
     a = F.generate("initial_load", {"n": 5}, "P")
     b = F.generate("initial_load", {"n": 5, "shuffle": "reverse"}, "P")
     assert a != b  # different bytes -> different file_id
-    ha = sorted(core.record_hash(json.loads(l)) for l in a)
-    hb = sorted(core.record_hash(json.loads(l)) for l in b)
+    ha = sorted(_canon(json.loads(l)) for l in a)
+    hb = sorted(_canon(json.loads(l)) for l in b)
     assert ha == hb  # identical business data
 
 
 def test_sequences_differ_only_in_intended_field():
-    from pipeline import core
     base = {json.loads(l)["Worker_ID"]: json.loads(l)
             for l in F.generate("initial_load", {"n": 5}, "P")}
     changed = {json.loads(l)["Worker_ID"]: json.loads(l)
                for l in F.generate("dept_change", {"n": 5, "target_index": 2,
                                                    "new_department": "X"}, "P")}
     diffs = [wid for wid in base
-             if not core.business_fields_equal(base[wid], changed[wid])]
+             if _canon(base[wid]) != _canon(changed[wid])]
     assert diffs == ["P-W0002"]
     assert changed["P-W0002"]["Department"] == "X"
 

@@ -1,88 +1,117 @@
 # Architecture
 
-## Data flow
+## The adapter seam
 
-```
-Workday RaaS ── NDJSON ──▶ GCS bucket ──▶ Dataflow (Flex Template, Beam)
-                                │                    │
-                                │              bronze.raw_worker_events
-                                │              bronze.raw_worker_rejects
-                                │                    │  (plpgsql, 1 txn)
-                                │                    ▼
-                                │              silver.apply_bronze_batch()
-                                │               ├─ workers_current (SCD4)
-                                │               └─ workers_history (SCD4)
-                                │                    │
-                                │                    ▼
-                                │              gold.* views (consumption)
-                                │
-                         ops.file_ingestions / ops.pipeline_runs / ops.audit_log
+The framework is pipeline-agnostic. It never imports, embeds, or assumes
+anything about the pipeline under test. The entire integration is one
+callable, resolved per run from `tf.environments.ingest_adapter`
+(dotted path `module.path:function_name`):
+
+```python
+def ingest_file(uri, *, file_name, as_of_date, env, actor) -> dict:
+    # MUST block until the pipeline has finished loading the file.
+    # Returns {"file_id": str, "status": "...", "error": str | None}
 ```
 
-`pipeline/launcher.ingest_file` is the single orchestrator for both modes:
+`test_framework/pipeline_adapter.py` is the only place the framework
+resolves and calls the adapter. `tf.environments.pipeline_mode` is
+constrained to `'external'` (migration `010`); there are no built-in
+local/Dataflow modes anymore. The seeded `local` environment uses the
+example adapter (`examples.reference_adapter:ingest_file`), so a fresh
+checkout runs end-to-end offline. The seeded `gcp` environment row is a
+template: point `ingest_adapter` at your own adapter (Dataflow, Spark,
+dbt, ...).
 
-- **local** — parses NDJSON in-process and writes bronze directly (used by the
-  QA framework; no GCP needed).
-- **dataflow** — launches the Flex Template with the file parameters, polls to
-  a terminal state, then runs the same silver merge + DQ as local mode.
+## Metadata model (`tf.*`)
 
-The Beam path (`pipeline/main.py` + `transforms.py`) does bronze loading only;
-the SCD4 merge stays in PostgreSQL (`006_silver_merge.sql`) so both modes
-share one implementation — no duplicated merge logic to drift apart.
+QA is data, not configuration. Everything lives in PostgreSQL:
 
-## Why SCD Type 4
+- `tf.environments` — env_id, storage backend (local dir / GCS bucket),
+  DB DSN env var, `ingest_adapter`, `active`. `pipeline_mode` is always
+  `'external'`.
+- `tf.test_cases` — id, name, category, fixture sequence (JSONB generator
+  specs), assertion expectations (JSONB), `executions`, `batchable`
+  (whether the case may ride batch ingest), enabled flag.
+- `tf.suites` — suite_id, ordered `test_case_ids`.
+- `tf.test_runs` — one row per run: env, suite, status, started/finished,
+  `summary` JSONB (case totals, `ingest_mode`, and the batch plan when in
+  batch mode).
+- `tf.case_results` / `tf.executions` / `tf.assertion_results` — the full
+  per-run result tree, including generated fixture bytes' SHA-256 and the
+  adapter's returned `file_id` per execution.
 
-HR worker records change constantly (department moves, promotions,
-terminations, rehires) and point-in-time questions are the norm ("who was in
-Data Platform on Sept 1?"). SCD4 keeps `workers_current` fast for the common
-case (one row per worker) while `workers_history` retains every superseded
-version with `valid_from`/`valid_to`. Terminations are versioned, never
-physically deleted.
+A run is fully reproducible from the database alone; the Markdown report is
+a query, not a log scrape.
 
-## Idempotency (three layers)
+## Deterministic fixture generators
 
-1. **Content-addressed files**: `file_id = UUID5(SHA-256(bytes))`. A
-   byte-identical replay is detected *before any work* and short-circuits as
-   `skipped_duplicate` (with an audit row). A concurrent `processing` file
-   raises instead of double-loading.
-2. **Bronze PK** `(file_id, line_no)`: re-running a failed load's bronze
-   write is `ON CONFLICT DO NOTHING`-safe.
-3. **Business-hash merge**: silver compares canonical record hashes, so a
-   reordered file (same business data, new bytes) produces zero new versions —
-   only `last_seen_as_of_date` advances.
+`test_framework/fixtures.py` generates byte-exact NDJSON per case from the
+`fixture_sequence` spec: happy-path snapshots, malformed lines, missing ids,
+duplicate workers, unicode, long text, empty files, invalid dates, stale
+snapshots. Every worker id is namespaced under the run prefix
+(`TC001-<run8>-W0000`), so merged or shared loads can never collide across
+cases. `file_bytes` assertions verify storage round-trip fidelity against
+the exact generated bytes.
 
-## Schema-drift tolerance
+## Assertion engine
 
-RaaS extracts gain/lose fields without notice. The merge promotes a known
-field list into typed silver columns; *everything else* is kept verbatim in
-`attributes JSONB`. New fields never break the load; promoting a new field to
-a typed column is a DDL + merge-procedure change, not a pipeline rewrite.
+`test_framework/assertions.py` evaluates each case's stored expectations
+with `{placeholders}` bound as query parameters from the run context —
+never interpolated (`{prefix}`, `{file_id}`, `{file_id_0…N}`,
+`{as_of_0…N}`, `{target_worker}`; literal `%` in SQL is escaped).
 
-## Auditability
+- `sql_scalar` / `sql_row` — arbitrary SQL against your database.
+  Comparators: `eq/ne/gt/gte/lt/lte`. SQL errors become `error` results,
+  never run-killers.
+- `file_bytes` — SHA-256 of the generated bytes vs the bytes read back
+  through the storage backend. `expected` is boolean.
+- `file_rows` — file→table line accounting, evaluated in Python by the
+  runner (which holds the exact fixture bytes). Every non-blank line must
+  be accounted for: parseable lines (with `Worker_ID`) matched by
+  `row_hash` (SHA-256 of the raw line, per `test_framework/lineparse.py`);
+  unparseable / id-less lines matched by 1-based `line_no` in the rejects
+  table. `expected` is the unaccounted-line count (0).
 
-- `ops.file_ingestions`: one row per content hash — rows received/loaded/
-  rejected, SCD counters, DQ warnings, status timeline.
-- `ops.pipeline_runs`: one row per launcher run, linked to the ingestion.
-- `ops.audit_log`: append-only; every transition (`ingest.started`,
-  `bronze.loaded`, `silver.merge.completed`, `ingest.skipped_duplicate`, …)
-  with actor, entity, and JSONB details.
-- Lineage: every silver row carries `source_file_id` + `source_line_no`
-  back to the exact bronze line.
+## Batch ingest design
 
-## Reliability
+`--ingest-mode per-file` (default) calls the adapter once per fixture file.
+`--ingest-mode batch` merges batch-eligible cases' fixture files by
+`as_of_date` into one NDJSON per date and calls the adapter once per group;
+solo cases still ingest individually. The latest regression: 34 launches →
+15, all 23 cases green.
 
-- Malformed JSON, non-object lines, and missing-`Worker_ID` rows are
-  quarantined in `bronze.raw_worker_rejects` — the file still completes.
-- DQ checks (`ops.compute_dq_warnings`) are advisory: empty file, high
-  null-email/department ratios, invalid dates/salaries, duplicate workers.
-  Warnings are recorded on the ingestion row; the load is never blocked.
-- Out-of-order (stale) snapshots are detected by `as_of_date` and counted,
-  never applied.
-- In-file duplicate `Worker_ID`s resolve deterministically: last line wins,
-  counted in the audit details.
+`test_framework/batching.py`:
 
-## Secrets
+- **Eligibility** (`is_batch_eligible`): a case is solo when
+  `batchable=FALSE`, or it has `executions > 1`, or its fixture sequence
+  uses a poison generator (`with_malformed`, `all_invalid`,
+  `invalid_dates`, `missing_worker_id`, `empty`), or its generated files
+  are byte-identical (a replay/dedup test). Currently 14 batchable / 9 solo
+  of 23 seeded cases.
+- **Grouping** (`plan_batch_groups`): files grouped by `as_of_date` (the
+  pipeline stamps one as-of per load; merging across dates would corrupt
+  date semantics). Merged content is exactly the concatenation of member
+  files, so per-case line offsets are exact for reject accounting.
+- **Assertion contract**: `{prefix}` is always safe (per-case worker
+  namespace). `{file_id}` / `{file_id_N}` resolve to the *shared batch
+  load's* file_id — safe for "load completed" checks, **not** for
+  per-case row counts; scope those by `{prefix}`.
+- The full batch plan (groups, member cases, launch counts) is persisted
+  in `tf.test_runs.summary`.
 
-The Dataflow workers never see the Postgres DSN. The Flex Template takes
-`pg_dsn_secret` — a Secret Manager **secret name** — and resolves it at
-runtime (`dbio.dsn_from_secret`). Locally, `HR_PG_DSN` carries the DSN.
+## Isolation model
+
+Each run derives a unique worker prefix (`TC001-<run8>`), so cases and runs
+never contaminate each other even when their lines share one merged load.
+One advisory lock per environment (`tf-run:<env_id>`) serializes runs
+against the same database.
+
+## What the examples are
+
+`examples/` is not part of the framework. `examples/reference_pipeline/`
+is a minimal HR pipeline (Workday RaaS NDJSON → GCS → Dataflow/Beam →
+PostgreSQL bronze/silver/gold with SCD Type 4 and content-addressed
+idempotency) that the framework was originally built against; it now lives
+here purely as a working example. `examples/reference_adapter.py`
+implements the ingest contract against it and is the recommended starting
+point for writing your own adapter.

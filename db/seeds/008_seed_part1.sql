@@ -4,13 +4,16 @@
 
 INSERT INTO tf.environments
     (env_id, display_name, pipeline_mode, storage_backend, gcp_project,
-     gcs_bucket, local_bucket_root, dataflow_region, db_dsn_env_var, active)
+     gcs_bucket, local_bucket_root, dataflow_region, db_dsn_env_var,
+     ingest_adapter, active)
 VALUES
-    ('local', 'Local dev (DirectRunner-equivalent local executor + local disk as GCS)',
-     'local', 'local', NULL, NULL, '/tmp/hr-gcs-local', 'us-central1', 'HR_PG_DSN', TRUE),
-    ('gcp', 'GCP (real Dataflow Flex Template + GCS)',
-     'dataflow', 'gcs', 'REPLACE_WITH_GCP_PROJECT', 'REPLACE_WITH_GCS_BUCKET',
-     NULL, 'us-central1', 'HR_PG_DSN', FALSE)
+    ('local', 'Local dev (reference pipeline via example adapter + local disk as GCS)',
+     'external', 'local', NULL, NULL, '/tmp/hr-gcs-local', 'us-central1', 'HR_PG_DSN',
+     'examples.reference_adapter:ingest_file', TRUE),
+    ('gcp', 'GCP (your Dataflow/Spark pipeline via your adapter + GCS)',
+     'external', 'gcs', 'REPLACE_WITH_GCP_PROJECT', 'REPLACE_WITH_GCS_BUCKET',
+     NULL, 'us-central1', 'HR_PG_DSN',
+     'mycompany.qa_adapter:ingest_file', FALSE)
 ON CONFLICT (env_id) DO NOTHING;
 
 INSERT INTO tf.pipelines (pipeline_id, display_name, flex_template_gcs_path, pipeline_version, active)
@@ -21,7 +24,7 @@ ON CONFLICT (pipeline_id) DO NOTHING;
 -- ============================ TC-001 =====================================
 INSERT INTO tf.test_cases
     (test_case_id, name, category, description, executions, fixture_sequence,
-     pipeline_id, expectations, enabled)
+     pipeline_id, expectations, enabled, batchable)
 VALUES ('TC-001', 'Happy path: initial load of 5 workers', 'functional',
  'Five brand-new workers load end to end: bronze rows, silver current rows, gold views, full lineage.',
  1,
@@ -29,7 +32,7 @@ VALUES ('TC-001', 'Happy path: initial load of 5 workers', 'functional',
  'hr-workday-ndjson-v1',
  '{"assertions": [
    {"name": "bronze_row_count", "kind": "sql_scalar",
-    "sql": "SELECT COUNT(*) FROM bronze.raw_worker_events WHERE file_id = {file_id}::uuid",
+    "sql": "SELECT COUNT(*) FROM bronze.raw_worker_events WHERE file_id = {file_id}::uuid AND worker_json ->> ''Worker_ID'' LIKE {prefix} || ''-W%''",
     "op": "eq", "expected": 5},
    {"name": "no_rejects", "kind": "sql_scalar",
     "sql": "SELECT COUNT(*) FROM bronze.raw_worker_rejects WHERE file_id = {file_id}::uuid",
@@ -49,18 +52,20 @@ VALUES ('TC-001', 'Happy path: initial load of 5 workers', 'functional',
    {"name": "silver_lineage_to_file", "kind": "sql_scalar",
     "sql": "SELECT COUNT(*) FROM silver.workers_current WHERE worker_id LIKE {prefix} || ''-W%'' AND source_file_id = {file_id}::uuid",
     "op": "eq", "expected": 5}
- ]}', TRUE)
+ ]}', TRUE, TRUE)
 ON CONFLICT (test_case_id) DO UPDATE SET
   name = EXCLUDED.name, category = EXCLUDED.category,
   description = EXCLUDED.description, executions = EXCLUDED.executions,
   fixture_sequence = EXCLUDED.fixture_sequence,
   pipeline_id = EXCLUDED.pipeline_id,
-  expectations = EXCLUDED.expectations, enabled = EXCLUDED.enabled;
+  expectations = EXCLUDED.expectations, enabled = EXCLUDED.enabled,
+  batchable = EXCLUDED.batchable;
 
 -- ============================ TC-002 =====================================
+-- batchable=FALSE: replay test, two identical files must load as separate events
 INSERT INTO tf.test_cases
     (test_case_id, name, category, description, executions, fixture_sequence,
-     pipeline_id, expectations, enabled)
+     pipeline_id, expectations, enabled, batchable)
 VALUES ('TC-002', 'Idempotency: byte-identical file replayed', 'idempotency',
  'Same bytes ingested twice. Second ingest must short-circuit as skipped_duplicate: no new bronze rows, no silver changes, no history.',
  1,
@@ -85,18 +90,19 @@ VALUES ('TC-002', 'Idempotency: byte-identical file replayed', 'idempotency',
    {"name": "no_history_on_replay", "kind": "sql_scalar",
     "sql": "SELECT COUNT(*) FROM silver.workers_history WHERE worker_id LIKE {prefix} || ''-W%''",
     "op": "eq", "expected": 0}
- ]}', TRUE)
+ ]}', TRUE, FALSE)
 ON CONFLICT (test_case_id) DO UPDATE SET
   name = EXCLUDED.name, category = EXCLUDED.category,
   description = EXCLUDED.description, executions = EXCLUDED.executions,
   fixture_sequence = EXCLUDED.fixture_sequence,
   pipeline_id = EXCLUDED.pipeline_id,
-  expectations = EXCLUDED.expectations, enabled = EXCLUDED.enabled;
+  expectations = EXCLUDED.expectations, enabled = EXCLUDED.enabled,
+  batchable = EXCLUDED.batchable;
 
 -- ============================ TC-003 =====================================
 INSERT INTO tf.test_cases
     (test_case_id, name, category, description, executions, fixture_sequence,
-     pipeline_id, expectations, enabled)
+     pipeline_id, expectations, enabled, batchable)
 VALUES ('TC-003', 'SCD4: worker department change creates one history row', 'scd4',
  'Second file moves one worker to a new department. Current row updates to version 2; exactly one history row keeps the old department with valid_to set.',
  1,
@@ -125,18 +131,19 @@ VALUES ('TC-003', 'SCD4: worker department change creates one history row', 'scd
    {"name": "merge_audit_shows_one_update", "kind": "sql_scalar",
     "sql": "SELECT COUNT(*) FROM ops.audit_log WHERE action = ''silver.merge.completed'' AND entity_id = {file_id} AND (details->>''workers_updated'')::int = 1",
     "op": "eq", "expected": 1}
- ]}', TRUE)
+ ]}', TRUE, FALSE)
 ON CONFLICT (test_case_id) DO UPDATE SET
   name = EXCLUDED.name, category = EXCLUDED.category,
   description = EXCLUDED.description, executions = EXCLUDED.executions,
   fixture_sequence = EXCLUDED.fixture_sequence,
   pipeline_id = EXCLUDED.pipeline_id,
-  expectations = EXCLUDED.expectations, enabled = EXCLUDED.enabled;
+  expectations = EXCLUDED.expectations, enabled = EXCLUDED.enabled,
+  batchable = EXCLUDED.batchable;
 
 -- ============================ TC-004 =====================================
 INSERT INTO tf.test_cases
     (test_case_id, name, category, description, executions, fixture_sequence,
-     pipeline_id, expectations, enabled)
+     pipeline_id, expectations, enabled, batchable)
 VALUES ('TC-004', 'Idempotency: same business data in a NEW file (reordered lines)', 'idempotency',
  'Second file has identical worker data but shuffled line order (different bytes => new file_id). Hash-based change detection must produce zero history rows and keep version 1.',
  1,
@@ -156,18 +163,19 @@ VALUES ('TC-004', 'Idempotency: same business data in a NEW file (reordered line
    {"name": "last_seen_advanced", "kind": "sql_scalar",
     "sql": "SELECT COUNT(*) FROM silver.workers_current WHERE worker_id LIKE {prefix} || ''-W%'' AND last_seen_as_of_date = {as_of_1}::date",
     "op": "eq", "expected": 5}
- ]}', TRUE)
+ ]}', TRUE, TRUE)
 ON CONFLICT (test_case_id) DO UPDATE SET
   name = EXCLUDED.name, category = EXCLUDED.category,
   description = EXCLUDED.description, executions = EXCLUDED.executions,
   fixture_sequence = EXCLUDED.fixture_sequence,
   pipeline_id = EXCLUDED.pipeline_id,
-  expectations = EXCLUDED.expectations, enabled = EXCLUDED.enabled;
+  expectations = EXCLUDED.expectations, enabled = EXCLUDED.enabled,
+  batchable = EXCLUDED.batchable;
 
 -- ============================ TC-005 =====================================
 INSERT INTO tf.test_cases
     (test_case_id, name, category, description, executions, fixture_sequence,
-     pipeline_id, expectations, enabled)
+     pipeline_id, expectations, enabled, batchable)
 VALUES ('TC-005', 'SCD4: termination is versioned, never deleted', 'scd4',
  'Worker status flips to Terminated with a termination date. Current row versions up; gold active roster excludes them; nothing is physically deleted.',
  1,
@@ -196,18 +204,19 @@ VALUES ('TC-005', 'SCD4: termination is versioned, never deleted', 'scd4',
    {"name": "row_not_deleted", "kind": "sql_scalar",
     "sql": "SELECT COUNT(*) FROM silver.workers_current WHERE worker_id = {target_worker}",
     "op": "eq", "expected": 1}
- ]}', TRUE)
+ ]}', TRUE, TRUE)
 ON CONFLICT (test_case_id) DO UPDATE SET
   name = EXCLUDED.name, category = EXCLUDED.category,
   description = EXCLUDED.description, executions = EXCLUDED.executions,
   fixture_sequence = EXCLUDED.fixture_sequence,
   pipeline_id = EXCLUDED.pipeline_id,
-  expectations = EXCLUDED.expectations, enabled = EXCLUDED.enabled;
+  expectations = EXCLUDED.expectations, enabled = EXCLUDED.enabled,
+  batchable = EXCLUDED.batchable;
 
 -- ============================ TC-006 =====================================
 INSERT INTO tf.test_cases
     (test_case_id, name, category, description, executions, fixture_sequence,
-     pipeline_id, expectations, enabled)
+     pipeline_id, expectations, enabled, batchable)
 VALUES ('TC-006', 'SCD4: new hires insert without touching existing versions', 'scd4',
  'Second file adds two workers. Existing five stay at version 1 with zero history; the two new rows insert at version 1.',
  1,
@@ -224,18 +233,19 @@ VALUES ('TC-006', 'SCD4: new hires insert without touching existing versions', '
    {"name": "new_workers_version_1", "kind": "sql_scalar",
     "sql": "SELECT COUNT(*) FROM silver.workers_current WHERE worker_id IN ({prefix} || ''-W0005'', {prefix} || ''-W0006'') AND version = 1",
     "op": "eq", "expected": 2}
- ]}', TRUE)
+ ]}', TRUE, TRUE)
 ON CONFLICT (test_case_id) DO UPDATE SET
   name = EXCLUDED.name, category = EXCLUDED.category,
   description = EXCLUDED.description, executions = EXCLUDED.executions,
   fixture_sequence = EXCLUDED.fixture_sequence,
   pipeline_id = EXCLUDED.pipeline_id,
-  expectations = EXCLUDED.expectations, enabled = EXCLUDED.enabled;
+  expectations = EXCLUDED.expectations, enabled = EXCLUDED.enabled,
+  batchable = EXCLUDED.batchable;
 
 -- ============================ TC-007 =====================================
 INSERT INTO tf.test_cases
     (test_case_id, name, category, description, executions, fixture_sequence,
-     pipeline_id, expectations, enabled)
+     pipeline_id, expectations, enabled, batchable)
 VALUES ('TC-007', 'Negative: malformed JSON lines are quarantined', 'negative',
  'File mixes 5 good workers with 2 corrupt lines. Good rows load fully; bad lines land in bronze rejects; the run still completes.',
  1,
@@ -257,18 +267,19 @@ VALUES ('TC-007', 'Negative: malformed JSON lines are quarantined', 'negative',
    {"name": "ingestion_completed_with_rejects", "kind": "sql_scalar",
     "sql": "SELECT rows_rejected FROM ops.file_ingestions WHERE file_id = {file_id}::uuid",
     "op": "eq", "expected": 2}
- ]}', TRUE)
+ ]}', TRUE, FALSE)
 ON CONFLICT (test_case_id) DO UPDATE SET
   name = EXCLUDED.name, category = EXCLUDED.category,
   description = EXCLUDED.description, executions = EXCLUDED.executions,
   fixture_sequence = EXCLUDED.fixture_sequence,
   pipeline_id = EXCLUDED.pipeline_id,
-  expectations = EXCLUDED.expectations, enabled = EXCLUDED.enabled;
+  expectations = EXCLUDED.expectations, enabled = EXCLUDED.enabled,
+  batchable = EXCLUDED.batchable;
 
 -- ============================ TC-008 =====================================
 INSERT INTO tf.test_cases
     (test_case_id, name, category, description, executions, fixture_sequence,
-     pipeline_id, expectations, enabled)
+     pipeline_id, expectations, enabled, batchable)
 VALUES ('TC-008', 'Negative: row without Worker_ID is rejected', 'negative',
  'A worker object missing the natural key cannot be curated. It is quarantined with reason missing_worker_id; the other 4 workers load normally.',
  1,
@@ -284,10 +295,11 @@ VALUES ('TC-008', 'Negative: row without Worker_ID is rejected', 'negative',
    {"name": "silver_4", "kind": "sql_scalar",
     "sql": "SELECT COUNT(*) FROM silver.workers_current WHERE worker_id LIKE {prefix} || ''-W%''",
     "op": "eq", "expected": 4}
- ]}', TRUE)
+ ]}', TRUE, FALSE)
 ON CONFLICT (test_case_id) DO UPDATE SET
   name = EXCLUDED.name, category = EXCLUDED.category,
   description = EXCLUDED.description, executions = EXCLUDED.executions,
   fixture_sequence = EXCLUDED.fixture_sequence,
   pipeline_id = EXCLUDED.pipeline_id,
-  expectations = EXCLUDED.expectations, enabled = EXCLUDED.enabled;
+  expectations = EXCLUDED.expectations, enabled = EXCLUDED.enabled,
+  batchable = EXCLUDED.batchable;

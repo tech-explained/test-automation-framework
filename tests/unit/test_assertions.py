@@ -109,7 +109,7 @@ def _file_ctx(contents, uris, backend, file_ids):
 
 def _seed_bronze(conn, file_id, lines):
     """Mirror the loader: good lines -> events, bad lines -> rejects."""
-    from pipeline import core as C
+    from test_framework import lineparse as C
     with conn.cursor() as cur:
         for i, raw in enumerate(lines, start=1):
             if not raw.strip():

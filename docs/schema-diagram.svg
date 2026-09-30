@@ -2,7 +2,7 @@
 <defs><marker id="ah" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto"><path d="M0,0 L8,4.5 L0,9 z" fill="#444"/></marker><marker id="ahb" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto"><path d="M0,0 L8,4.5 L0,9 z" fill="#1f6feb"/></marker><style>text{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}</style></defs>
 <rect width="1700" height="1340" fill="#ffffff"/>
 <text x="24" y="30" font-size="20" font-weight="bold" fill="#111">Test framework schema — hr-dataflow-gcp (PostgreSQL)</text>
-<text x="24" y="50" font-size="12" fill="#666">tf.* = framework metadata + results (written by the runner) · ops / bronze / silver = pipeline under test (assertions read them, never write)</text>
+<text x="24" y="50" font-size="12" fill="#666">tf.* = framework metadata + results (written by the runner) · ops / bronze / silver = YOUR pipeline under test (assertions read them, never write) · pipeline plugs in via tf.environments.ingest_adapter</text>
 <text x="330" y="70" font-size="13" font-weight="bold" fill="#555" text-anchor="middle" letter-spacing="2">A · TEST DEFINITIONS</text>
 <text x="820" y="70" font-size="13" font-weight="bold" fill="#555" text-anchor="middle" letter-spacing="2">B · TEST EXECUTION</text>
 <text x="1330" y="70" font-size="13" font-weight="bold" fill="#555" text-anchor="middle" letter-spacing="2">C · PIPELINE DATA UNDER TEST</text>
@@ -45,7 +45,7 @@
 <line x1="28" y1="376" x2="312" y2="376" stroke="#eef1f4"/>
 <text x="30" y="392" font-size="12" fill="#111">active</text>
 <text x="310" y="392" font-size="11" fill="#8a949e" text-anchor="end">BOOL</text>
-<rect x="20" y="436" width="300" height="274" rx="6" fill="#fff" stroke="#d0d7de" stroke-width="1.5"/>
+<rect x="20" y="436" width="300" height="298" rx="6" fill="#fff" stroke="#d0d7de" stroke-width="1.5"/>
 <rect x="20" y="436" width="300" height="34" rx="6" fill="#1f6feb"/>
 <rect x="20" y="464" width="300" height="6" fill="#1f6feb"/>
 <text x="32" y="458" font-size="14" font-weight="bold" fill="#fff">tf.environments</text>
@@ -80,7 +80,10 @@
 <line x1="28" y1="686" x2="312" y2="686" stroke="#eef1f4"/>
 <text x="30" y="702" font-size="12" fill="#111">active</text>
 <text x="310" y="702" font-size="11" fill="#8a949e" text-anchor="end">BOOL</text>
-<rect x="340" y="80" width="300" height="274" rx="6" fill="#fff" stroke="#d0d7de" stroke-width="1.5"/>
+<line x1="28" y1="710" x2="312" y2="710" stroke="#eef1f4"/>
+<text x="30" y="726" font-size="12" fill="#111">ingest_adapter</text>
+<text x="310" y="726" font-size="11" fill="#8a949e" text-anchor="end">TEXT</text>
+<rect x="340" y="80" width="300" height="298" rx="6" fill="#fff" stroke="#d0d7de" stroke-width="1.5"/>
 <rect x="340" y="80" width="300" height="34" rx="6" fill="#1f6feb"/>
 <rect x="340" y="108" width="300" height="6" fill="#1f6feb"/>
 <text x="352" y="102" font-size="14" font-weight="bold" fill="#fff">tf.test_cases</text>
@@ -117,6 +120,9 @@
 <line x1="348" y1="330" x2="632" y2="330" stroke="#eef1f4"/>
 <text x="350" y="346" font-size="12" fill="#111">owner</text>
 <text x="630" y="346" font-size="11" fill="#8a949e" text-anchor="end">TEXT</text>
+<line x1="348" y1="354" x2="632" y2="354" stroke="#eef1f4"/>
+<text x="350" y="370" font-size="12" fill="#111">batchable</text>
+<text x="630" y="370" font-size="11" fill="#8a949e" text-anchor="end">BOOL</text>
 <rect x="670" y="80" width="300" height="226" rx="6" fill="#fff" stroke="#d0d7de" stroke-width="1.5"/>
 <rect x="670" y="80" width="300" height="34" rx="6" fill="#1f6feb"/>
 <rect x="670" y="108" width="300" height="6" fill="#1f6feb"/>

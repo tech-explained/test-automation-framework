@@ -22,7 +22,7 @@ import uuid
 from datetime import date
 from typing import Any, Optional
 
-from pipeline import core, dbio
+from examples.reference_pipeline import core, dbio
 
 
 # ---------------------------------------------------------------------------

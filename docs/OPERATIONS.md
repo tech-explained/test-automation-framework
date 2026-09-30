@@ -11,12 +11,14 @@ python3 -m pytest tests/unit -q
 python3 -m test_framework.runner --env local --suite regression
 ```
 
+The seeded `local` environment runs the framework against the example
+adapter (`examples.reference_adapter:ingest_file`), so everything works
+offline with no GCP.
+
 ## Framework-only deployment (pipeline developed separately)
 
-The test framework is standalone: it only needs PostgreSQL, a fixture
-bucket, and one adapter function. The `pipeline/` package is NOT required
-(the runner imports it lazily, only for the built-in `local`/`dataflow`
-modes).
+The test framework is standalone: it needs PostgreSQL, a fixture bucket,
+and one adapter function. It never imports the pipeline under test.
 
 ### What the framework needs from your pipeline
 
@@ -35,8 +37,11 @@ def ingest_file(uri, *, file_name, as_of_date, env, actor) -> dict:
     """
 ```
 
+Start from `examples/reference_adapter.py` — it implements this contract
+against the example pipeline (trigger → block until done → return identity).
+
 Assertion SQL is yours too: each test case's `expectations` is arbitrary SQL
-against your database. The 23 seeded cases target the reference schema
+against your database. The 23 seeded cases target the example schema
 (`bronze.*`, `silver.*`, `ops.*`); keep them if your pipeline writes those
 tables, otherwise author cases with `add_case.py` against your own tables.
 The four assertion kinds (`sql_scalar`, `sql_row`, `file_bytes`,
@@ -56,7 +61,7 @@ bash scripts/migrate.sh   # tf.* schema + seed cases; idempotent
 ```
 
 Only the `tf.*` tables are required. `bronze.*` / `silver.*` / `ops.*` /
-`gold.*` migrations are the reference pipeline's schema — apply them only if
+`gold.*` migrations are the example pipeline's schema — apply them only if
 your pipeline adopts that contract.
 
 ### 2. Fixture bucket
@@ -68,7 +73,7 @@ objectViewer).
 ### 3. Runner host
 
 Anywhere with Python 3.12+, `psycopg`, DB access and GCS access: a GCE VM,
-a Cloud Run Job, Cloud Build, or a laptop. No Docker, no Dataflow.
+a Cloud Run Job, Cloud Build, or a laptop. No Docker, no pipeline binaries.
 
 ```bash
 pip install "psycopg[binary]" google-cloud-storage
@@ -87,24 +92,29 @@ VALUES
      'mycompany.qa_adapter:ingest_file', TRUE);
 ```
 
+`pipeline_mode` is always `'external'`; the framework resolves the adapter
+from `ingest_adapter` at run time.
+
 ### 5. Run
 
 ```bash
 export HR_PG_DSN="postgresql://user:pass@10.x.x.x/hrprod"
 python3 -m test_framework.runner --env gcp --suite smoke
 python3 -m test_framework.runner --env gcp --suite regression
+python3 -m test_framework.runner --env gcp --suite regression --ingest-mode batch
 ```
 
 IAM summary (framework-only): runner identity needs Cloud SQL client,
 Secret Manager accessor only if you keep the DSN in Secret Manager, and
-GCS objectAdmin on the fixture bucket. No Dataflow roles, no worker service
-account.
+GCS objectAdmin on the fixture bucket. No pipeline-specific roles needed
+by the framework — your adapter's own credentials cover triggering your
+pipeline.
 
 ## Deploy and run the framework inside GCP (Cloud Run Job)
 
-This runs the framework itself on GCP — no laptop needed. The runner executes
-as a Cloud Run Job in your project, talking to real GCS, Dataflow, and Cloud
-SQL over the VPC.
+This runs the framework itself on GCP — no laptop needed. The runner
+executes as a Cloud Run Job in your project, talking to GCS, Cloud SQL,
+and your pipeline (via your adapter) over the VPC.
 
 ```bash
 gcloud config set project <project>
@@ -118,8 +128,9 @@ gcloud config set project <project>
 export HR_PG_DSN="$(gcloud secrets versions access latest --secret=hr-runner-dsn)"
 bash scripts/migrate.sh
 
-# 3. register the gcp environment row + template path (SQL in the
-#    "GCP deployment (bundled reference pipeline)" section below)
+# 3. register the gcp environment row pointing at YOUR adapter
+#    (pipeline_mode='external', ingest_adapter='mycompany.qa_adapter:ingest_file')
+#    — see "4. Register the environment" above
 
 # 4. build the runner image, create the Cloud Run Job, run the smoke suite
 ./deploy/runner/deploy.sh
@@ -131,17 +142,25 @@ Build (`deploy/runner/Dockerfile` + `cloudbuild.yaml`), creates/updates the
 connector for Cloud SQL private IP, `HR_PG_DSN` from Secret Manager), sets a
 2-hour task timeout, then executes `--env gcp --suite smoke` and waits.
 
+The image contains only the framework + `examples/` + DB/test assets. Your
+adapter is baked in by copying your adapter package into the image and
+setting `tf.environments.ingest_adapter` to its dotted path (see the
+Dockerfile comments).
+
 Run other suites afterwards:
 
 ```bash
 gcloud run jobs execute hr-qa-runner --region=us-central1 --wait \
   --args='--env,gcp,--suite,regression'
 gcloud run jobs execute hr-qa-runner --region=us-central1 --wait \
+  --args='--env,gcp,--suite,regression,--ingest-mode,batch'
+gcloud run jobs execute hr-qa-runner --region=us-central1 --wait \
   --args='--env,gcp,--cases,TC-001,TC-005'
 ```
 
 Files: `scripts/gcp_bootstrap.sh`, `deploy/runner/{Dockerfile,cloudbuild.yaml,job.yaml,deploy.sh}`.
-Notes: each regression case launches its own Dataflow job (cost); the VPC
+Notes: in per-file mode each case triggers its own pipeline launch through
+your adapter (cost scales with launches — batch mode cuts them); the VPC
 connector is required because Cloud SQL uses a private IP; the DB password
 lives only in Secret Manager (bootstrap rotates it).
 
@@ -155,93 +174,33 @@ for it: `qa_smoke` → `qa_regression` (regression only if smoke is green).
 (DAG upload, IAM for the Composer service account) is in
 `deploy/composer/README.md`.
 
-## GCP deployment (bundled reference pipeline)
-
-### 1. Network + database
-
-- Cloud SQL for PostgreSQL 15+ with **private IP** on a dedicated VPC.
-- Apply `db/migrations/*.sql` from a host with VPC access (Cloud Shell with
-  private-services access, or a GCE jump host). Seeds `008_*` are optional in
-  prod — they seed the QA metadata, harmless to include.
-- Store the DSN in Secret Manager, e.g. `hr-postgres-dsn`
-  (`postgresql://user:pass@10.x.x.x/hrprod`).
-
-### 2. IAM (least privilege)
-
-- Dataflow worker service account: `roles/dataflow.worker`,
-  `roles/storage.objectViewer` (input bucket) + `objectCreator` (template
-  staging), `roles/secretmanager.secretAccessor` (only the DSN secret),
-  `roles/cloudsql.client` (or authorized-network IP).
-- Launcher identity (whoever runs `ingest_file` in dataflow mode):
-  `roles/dataflow.developer` on the project.
-
-### 3. Build + deploy the Flex Template
-
-```bash
-cd pipeline
-docker build -t gcr.io/<project>/hr-workday-loader:latest .
-docker push gcr.io/<project>/hr-workday-loader:latest
-gcloud dataflow flex-template build \
-  gs://<bucket>/templates/hr-workday-ndjson.json \
-  --image gcr.io/<project>/hr-workday-loader:latest \
-  --sdk-language PYTHON \
-  --metadata-file metadata.json
-```
-
-### 4. Register the gcp environment
-
-```sql
-UPDATE tf.environments SET active = TRUE WHERE env_id = 'gcp';
--- set gcs_bucket, gcp_project, dataflow_region, pipeline_mode='dataflow'
-UPDATE tf.pipelines
-   SET flex_template_gcs_path = 'gs://<bucket>/templates/hr-workday-ndjson.json'
- WHERE pipeline_id = 'hr-workday-ndjson-v1';
-```
-
-### 5. Run the QA suite against GCP
-
-```bash
-export HR_PG_DSN="<cloud sql dsn>"            # framework's own DB handle
-export DATAFLOW_PG_DSN_SECRET="hr-postgres-dsn"
-python3 -m test_framework.runner --env gcp --suite smoke
-python3 -m test_framework.runner --env gcp --suite regression
-```
-
-### 6. Production loads
-
-```python
-from datetime import date
-from pipeline import launcher
-
-launcher.ingest_file(
-    "gs://hr-extracts/workday/workers_20260929.ndjson",
-    as_of_date=date(2026, 9, 29),
-    mode="dataflow",
-    actor="scheduler",
-    dataflow={
-        "project": "<project>",
-        "region": "us-central1",
-        "template_gcs_path": "gs://<bucket>/templates/hr-workday-ndjson.json",
-        "pg_dsn_secret": "hr-postgres-dsn",
-    },
-)
-```
-
 ## Monitoring
 
-- `ops.file_ingestions`: watch `status`, `rows_rejected`, `dq_warnings`.
-- `ops.audit_log`: the full transition trail per `file_id`.
-- Dataflow console: job graph, failed bundles → check `bronze.raw_worker_rejects`
-  for the quarantined lines.
-- Gold views power BI directly; `gold.vw_missing_from_latest_snapshot`
-  flags workers that vanished from the newest extract.
+- `tf.test_runs` / `tf.case_results` / `tf.assertion_results`: every run's
+  pass/fail tree. `test_runs.summary` carries case totals, `ingest_mode`,
+  and the batch plan (groups, launches) for batch-mode runs.
+- `test_framework/reports/<run_id>.md`: the human-readable report per run.
+- Your adapter's own logs/metrics: pipeline launch latency, load statuses
+  returned per `file_id`, and any pipeline-side errors surfaced as `error`
+  in the adapter result.
 
 ## Incident notes
 
-- **File stuck in `processing`**: a previous launcher died mid-run. Inspect,
-  then either re-run (bronze writes are idempotent) or manually reset status.
-- **Replay storms**: byte-identical files are free (`skipped_duplicate`);
-  reordered-but-identical business data costs one bronze write and zero new
-  silver versions.
-- **Schema drift**: new RaaS fields appear in `attributes` automatically;
-  promote to typed columns via migration when analysts need them.
+- **Adapter call never returns**: the adapter must block until the load
+  finishes — a hang here hangs the run. Check your pipeline's job state
+  directly (stalled job, quota, missing trigger permission) and kill the
+  runner; the env advisory lock is released on exit, and the run can be
+  re-executed.
+- **Run fails to start on the env lock**: a previous runner died while
+  holding the `tf-run:<env_id>` advisory lock. Verify no runner is alive,
+  then release the lock (`SELECT pg_advisory_unlock_all()` on that session
+  or restart cleanly) and re-run.
+- **Replay storms**: byte-identical fixtures short-circuit as
+  `skipped_duplicate` if your adapter implements that status; otherwise
+  they cost a full load — cheap either way, and per-file mode isolates
+  them by design.
+- **`file_rows` mismatches**: the framework checks raw-line identity
+  against the pipeline's stored rows (sha256 of the raw line, `Worker_ID`
+  natural key). Mismatches usually mean the pipeline normalizes or rewrites
+  lines on the way in — switch those assertions to `sql_scalar` against
+  your own tables.
