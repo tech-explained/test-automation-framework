@@ -11,7 +11,96 @@ python3 -m pytest tests/unit -q
 python3 -m test_framework.runner --env local --suite regression
 ```
 
-## GCP deployment
+## Framework-only deployment (pipeline developed separately)
+
+The test framework is standalone: it only needs PostgreSQL, a fixture
+bucket, and one adapter function. The `pipeline/` package is NOT required
+(the runner imports it lazily, only for the built-in `local`/`dataflow`
+modes).
+
+### What the framework needs from your pipeline
+
+Exactly one seam — implement this function anywhere importable:
+
+```python
+def ingest_file(uri, *, file_name, as_of_date, env, actor) -> dict:
+    """Load the fixture file at `uri` through the pipeline under test.
+
+    MUST block until the load is finished (the runner evaluates assertions
+    immediately after this returns).
+    Returns {"file_id": str, "status": "completed"|"failed"|"skipped_duplicate",
+             "error": str | None}.
+    `file_id` feeds the {file_id} assertion placeholder: use whatever file
+    identity your pipeline has (registry id, load id, ...).
+    """
+```
+
+Assertion SQL is yours too: each test case's `expectations` is arbitrary SQL
+against your database. The 23 seeded cases target the reference schema
+(`bronze.*`, `silver.*`, `ops.*`); keep them if your pipeline writes those
+tables, otherwise author cases with `add_case.py` against your own tables.
+The four assertion kinds (`sql_scalar`, `sql_row`, `file_bytes`,
+`file_rows`) are pipeline-agnostic except `file_rows`, which verifies the
+framework's bronze contract (sha256-of-raw-line row identity, `Worker_ID`
+natural key — see `test_framework/lineparse.py`).
+
+### 1. Database
+
+Cloud SQL for PostgreSQL 15+ (private IP on a dedicated VPC is enough; no
+Dataflow/Secret Manager needed for framework-only). From a host with VPC
+access:
+
+```bash
+export HR_PG_DSN="postgresql://user:pass@10.x.x.x/hrprod"
+bash scripts/migrate.sh   # tf.* schema + seed cases; idempotent
+```
+
+Only the `tf.*` tables are required. `bronze.*` / `silver.*` / `ops.*` /
+`gold.*` migrations are the reference pipeline's schema — apply them only if
+your pipeline adopts that contract.
+
+### 2. Fixture bucket
+
+One GCS bucket (or prefix) the runner can write fixtures to. The runner's
+identity needs `roles/storage.objectAdmin` on it (or objectCreator +
+objectViewer).
+
+### 3. Runner host
+
+Anywhere with Python 3.12+, `psycopg`, DB access and GCS access: a GCE VM,
+a Cloud Run Job, Cloud Build, or a laptop. No Docker, no Dataflow.
+
+```bash
+pip install "psycopg[binary]" google-cloud-storage
+```
+
+### 4. Register the environment
+
+```sql
+INSERT INTO tf.environments
+    (env_id, display_name, pipeline_mode, storage_backend,
+     gcp_project, gcs_bucket, db_dsn_env_var, ingest_adapter, active)
+VALUES
+    ('gcp', 'GCP (external pipeline + GCS fixtures)',
+     'external', 'gcs',
+     '<project>', '<bucket>', 'HR_PG_DSN',
+     'mycompany.qa_adapter:ingest_file', TRUE);
+```
+
+### 5. Run
+
+```bash
+export HR_PG_DSN="postgresql://user:pass@10.x.x.x/hrprod"
+python3 -m test_framework.runner --env gcp --suite smoke
+python3 -m test_framework.runner --env gcp --suite regression
+```
+
+IAM summary (framework-only): runner identity needs Cloud SQL client,
+Secret Manager accessor only if you keep the DSN in Secret Manager, and
+GCS objectAdmin on the fixture bucket. No Dataflow roles, no worker service
+account.
+
+## GCP deployment (bundled reference pipeline)
 
 ### 1. Network + database
 

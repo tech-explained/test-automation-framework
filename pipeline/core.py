@@ -20,6 +20,15 @@ import uuid
 from datetime import date, datetime
 from typing import Any, Optional
 
+# Canonical home of the NDJSON line semantics is test_framework.lineparse
+# (the framework must not import the pipeline package). Re-exported here so
+# the bundled reference pipeline shares the single implementation.
+from test_framework.lineparse import (
+    extract_worker_id,
+    parse_line,
+    row_hash,
+)
+
 # Workday RaaS worker fields we promote to typed silver columns.
 # Anything else in the JSON object lands in silver.attributes (schema-drift safe).
 KNOWN_FIELDS = [
@@ -33,32 +42,8 @@ KNOWN_FIELDS = [
 _AS_OF_RE = re.compile(r"(20\d{2})[-_]?(\d{2})[-_]?(\d{2})")
 
 
-def parse_line(line: str) -> tuple[Optional[dict], Optional[str]]:
-    """Parse one NDJSON line. Returns (obj, None) or (None, error_reason)."""
-    s = line.strip()
-    if not s:
-        return None, "empty_line"
-    try:
-        obj = json.loads(s)
-    except json.JSONDecodeError as exc:
-        return None, f"invalid_json: {exc.msg}"
-    if not isinstance(obj, dict):
-        return None, "not_a_json_object"
-    return obj, None
-
-
-def extract_worker_id(obj: dict) -> Optional[str]:
-    """Natural key. Returns None when missing/blank (row must be quarantined)."""
-    wid = obj.get("Worker_ID")
-    if wid is None:
-        return None
-    wid = str(wid).strip()
-    return wid or None
-
-
-def row_hash(raw_line: str) -> str:
-    """Identity hash of the raw line (bronze row identity)."""
-    return hashlib.sha256(raw_line.encode("utf-8")).hexdigest()
+# parse_line / extract_worker_id / row_hash live in test_framework.lineparse
+# and are re-exported above.
 
 
 def file_id_for_content(sha256_hex: str) -> uuid.UUID:

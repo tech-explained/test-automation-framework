@@ -34,7 +34,7 @@ from decimal import Decimal
 from typing import Any
 from uuid import UUID
 
-from pipeline import core as pipeline_core
+from test_framework import lineparse
 
 OPS = {
     "eq": operator.eq, "ne": operator.ne,
@@ -125,11 +125,11 @@ def _eval_file_rows(conn, assertion: dict, ctx: dict) -> tuple[Any, str | None]:
     for lineno, raw in enumerate(content.splitlines(), start=1):
         if not raw.strip():
             continue  # loader ignores blank lines entirely
-        obj, err = pipeline_core.parse_line(raw)
-        if err is None and pipeline_core.extract_worker_id(obj) is None:
+        obj, err = lineparse.parse_line(raw)
+        if err is None and lineparse.extract_worker_id(obj) is None:
             err = "missing_worker_id"
         if err is None:
-            good_hashes[pipeline_core.row_hash(raw)] += 1
+            good_hashes[lineparse.row_hash(raw)] += 1
         else:
             bad_lines[lineno] = raw
 

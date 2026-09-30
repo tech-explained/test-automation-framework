@@ -1,9 +1,11 @@
 """QA framework runner: metadata-driven, persistence-driven test orchestration.
 
 Reads test definitions from tf.* tables (never from config files), then for
-each case: generate fixture NDJSON -> upload to storage -> orchestrate the
-pipeline via pipeline.launcher.ingest_file -> evaluate SQL assertions ->
-persist every step back to tf.* tables -> render a Markdown report.
+each case: generate fixture NDJSON -> upload to storage -> ingest via the
+pipeline adapter (test_framework/pipeline_adapter.py: built-in local/dataflow
+launcher, or an external adapter for a separately developed pipeline) ->
+evaluate SQL assertions -> persist every step back to tf.* tables ->
+render a Markdown report.
 
 Usage:
     HR_PG_DSN=postgresql://... python -m test_framework.runner --env local --suite smoke
@@ -15,7 +17,6 @@ from __future__ import annotations
 
 import argparse
 import json
-import os
 import sys
 import traceback
 import uuid
@@ -24,9 +25,10 @@ from datetime import date
 import psycopg
 from psycopg.rows import dict_row
 
-from pipeline import dbio, launcher
 from test_framework import assertions as A
+from test_framework import db as TFDB
 from test_framework import fixtures as F
+from test_framework import pipeline_adapter as PA
 from test_framework import reporting, storage
 
 
@@ -86,23 +88,9 @@ def _unlock_env(conn, env_id: str) -> None:
         cur.execute("SELECT pg_advisory_unlock(hashtext(%s))", (f"tf-run:{env_id}",))
 
 
-def _dataflow_cfg(env: dict, pipeline: dict) -> dict | None:
-    if env["pipeline_mode"] != "dataflow":
-        return None
-    secret = os.environ.get("DATAFLOW_PG_DSN_SECRET")
-    if not secret:
-        raise RuntimeError("DATAFLOW_PG_DSN_SECRET must be set for dataflow mode")
-    return {
-        "project": env["gcp_project"],
-        "region": env["dataflow_region"],
-        "template_gcs_path": pipeline["flex_template_gcs_path"],
-        "pg_dsn_secret": secret,
-    }
-
-
 def _run_one_case(conn, *, run_id: uuid.UUID, env: dict, backend,
                   case: dict, prefix: str, dry_run: bool,
-                  dataflow_cfg: dict | None = None) -> dict:
+                  ingest=None) -> dict:
     """Execute all executions of one test case. Returns summary dict."""
     case_id = case["test_case_id"]
     seq = case["fixture_sequence"]
@@ -141,13 +129,11 @@ def _run_one_case(conn, *, run_id: uuid.UUID, env: dict, backend,
                 uri = backend.upload_text(dest, content)
                 gcs_uris.append(uri)
                 file_contents.append(content)
-                result = launcher.ingest_file(
+                result = ingest(
                     uri,
                     file_name=f"{case_id}-exec{exec_no}-part{fidx}.ndjson",
                     as_of_date=as_of,
-                    mode=env["pipeline_mode"],
                     actor=f"test-framework:{run_id}",
-                    dataflow=dataflow_cfg,
                 )
                 file_ids.append(result["file_id"])
                 load_statuses.append(result["status"])
@@ -218,7 +204,7 @@ def main(argv=None) -> int:
     ap.add_argument("--triggered-by", default="qa-framework")
     args = ap.parse_args(argv)
 
-    conn = dbio.connect()
+    conn = TFDB.connect()
     conn.autocommit = True
     try:
         with conn.cursor(row_factory=dict_row) as cur:
@@ -240,7 +226,7 @@ def main(argv=None) -> int:
         backend = storage.make_backend(
             env["storage_backend"], bucket=env.get("gcs_bucket"),
             local_root=env.get("local_bucket_root"))
-        df_cfg = _dataflow_cfg(env, pipeline)
+        ingest = PA.load_ingest(env, pipeline)
 
         with conn.cursor() as cur:
             cur.execute(
@@ -262,7 +248,7 @@ def main(argv=None) -> int:
                 res = _run_one_case(conn, run_id=run_id, env=env,
                                       backend=backend, case=case,
                                       prefix=prefix, dry_run=False,
-                                      dataflow_cfg=df_cfg)
+                                      ingest=ingest)
                 for k in totals:
                     totals[k] += res.get(k, 0)
         finally:
