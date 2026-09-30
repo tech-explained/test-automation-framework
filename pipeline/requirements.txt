@@ -1,0 +1,4 @@
+# Runtime deps for the Dataflow Flex Template workers.
+apache-beam[gcp]==2.61.0
+psycopg[binary]==3.2.4
+google-cloud-secret-manager==2.21.0
