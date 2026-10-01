@@ -38,7 +38,7 @@ visual. Seven tables in two groups.
 | `display_name` | TEXT | human label |
 | `pipeline_mode` | TEXT | always `'external'` (CHECK constraint); the framework has no built-in pipeline drivers |
 | `storage_backend` | TEXT | `'local'` or `'gcs'` |
-| `gcp_project`, `gcs_bucket`, `local_bucket_root`, `dataflow_region` | TEXT | backend/config knobs; nullable per backend |
+| `gcp_project`, `gcs_bucket`, `local_bucket_root`, `region` | TEXT | backend/config knobs; nullable per backend |
 | `db_dsn_env_var` | TEXT | name of the env var holding the DSN (DSN never stored in rows) |
 | `ingest_adapter` | TEXT | dotted path `module.path:function_name` — the pipeline plug-in point |
 | `active` | BOOLEAN | only active envs can run |
@@ -50,7 +50,7 @@ framework never executes pipeline code).
 |---|---|---|
 | `pipeline_id` | TEXT PK | e.g. `sample-pipeline-v1` |
 | `display_name` | TEXT | |
-| `flex_template_gcs_path` | TEXT | informational (used by Dataflow-style adapters) |
+| `launch_config` | JSONB | pipeline-specific launch settings for your adapter |
 | `pipeline_version` | TEXT | |
 | `active` | BOOLEAN | runner uses the single active row |
 

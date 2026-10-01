@@ -6,21 +6,21 @@
 
 INSERT INTO tf.environments
     (env_id, display_name, pipeline_mode, storage_backend, gcp_project,
-     gcs_bucket, local_bucket_root, dataflow_region, db_dsn_env_var,
+     gcs_bucket, local_bucket_root, region, db_dsn_env_var,
      ingest_adapter, active)
 VALUES
-    ('local', 'Local dev (your adapter + local disk as GCS)',
-     'external', 'local', NULL, NULL, '/tmp/qa-gcs-local', 'us-central1', 'HR_PG_DSN',
+    ('local', 'Local dev (your adapter + local disk as storage)',
+     'external', 'local', NULL, NULL, '/tmp/qa-storage-local', NULL, 'HR_PG_DSN',
      'mycompany.qa_adapter:ingest_file', TRUE),
-    ('gcp', 'GCP (your Dataflow/Spark pipeline via your adapter + GCS)',
+    ('gcp', 'GCP (your pipeline via your adapter + GCS)',
      'external', 'gcs', 'REPLACE_WITH_GCP_PROJECT', 'REPLACE_WITH_GCS_BUCKET',
      NULL, 'us-central1', 'HR_PG_DSN',
      'mycompany.qa_adapter:ingest_file', FALSE)
 ON CONFLICT (env_id) DO NOTHING;
 
-INSERT INTO tf.pipelines (pipeline_id, display_name, flex_template_gcs_path, pipeline_version, active)
+INSERT INTO tf.pipelines (pipeline_id, display_name, launch_config, pipeline_version, active)
 VALUES ('sample-pipeline-v1', 'Sample pipeline (illustrative only)',
-        'gs://REPLACE_WITH_BUCKET/templates/sample.json', 'v1', TRUE)
+        '{"note": "put your pipeline launch settings here"}', 'v1', TRUE)
 ON CONFLICT (pipeline_id) DO NOTHING;
 
 -- ============================ TC-001 =====================================

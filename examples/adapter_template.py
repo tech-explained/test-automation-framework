@@ -34,28 +34,20 @@ Rules:
     * Never raise for a pipeline-level failure; return
       ``status="failed"`` with ``error`` set so the run records it.
 
-Example skeleton for a Dataflow Flex Template::
+Example skeleton (pseudocode — adapt to your orchestrator)::
 
     def ingest_file(uri, *, file_name, as_of_date, env, actor):
-        import time
-        from google.cloud import dataflow_v1beta3  # or your orchestrator
-
-        client = dataflow_v1beta3.FlexTemplatesServiceClient()
-        resp = client.launch_flex_template(request={
-            "project_id": env["gcp_project"],
-            "location": env["dataflow_region"],
-            "launch_parameter": {
-                "container_spec_gcs_path": env["flex_template_gcs_path"],
-                "parameters": {
-                    "input": uri,
-                    "as_of_date": as_of_date.isoformat(),
-                    "actor": actor,
-                },
-            },
-        })
-        job_id = resp.job.id
-        # ... poll until DONE ...
-        return {"file_id": job_id, "status": "completed", "error": None}
+        # 1. Read any pipeline-specific launch settings:
+        #    launch = (pipeline_row.get("launch_config") or {})
+        # 2. Trigger your pipeline with:
+        #      input_uri  = uri
+        #      as_of_date = as_of_date.isoformat()
+        #      actor      = actor
+        # 3. Block until the load finishes (poll your orchestrator's
+        #    API — do NOT return while the job is still running).
+        # 4. Return your pipeline's own identity for the load:
+        return {"file_id": "<your-job-or-batch-id>",
+                "status": "completed", "error": None}
 """
 
 from __future__ import annotations

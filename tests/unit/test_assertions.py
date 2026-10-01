@@ -166,6 +166,20 @@ class TestFileBytes:
 
 
 class TestFileRows:
+    @pytest.fixture(autouse=True)
+    def _bronze_tables(self, conn):
+        # The file_rows kind asserts against the pipeline's bronze contract
+        # tables; the test creates them since the framework ships no pipeline.
+        with conn.cursor() as cur:
+            cur.execute("CREATE SCHEMA IF NOT EXISTS bronze")
+            cur.execute("""CREATE TABLE IF NOT EXISTS bronze.raw_worker_events (
+                               file_id UUID, file_name TEXT, line_no INT,
+                               as_of_date DATE, worker_json JSONB, row_hash TEXT)""")
+            cur.execute("""CREATE TABLE IF NOT EXISTS bronze.raw_worker_rejects (
+                               file_id UUID, file_name TEXT, line_no INT,
+                               raw_line TEXT, error TEXT)""")
+        conn.commit()
+
     def test_clean_file_fully_accounted(self, conn):
         from test_framework import fixtures as F
         fid = str(uuid.uuid4())

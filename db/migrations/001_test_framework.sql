@@ -20,7 +20,7 @@ CREATE SCHEMA IF NOT EXISTS tf;
 -- Execution environments. The pipeline under test is ALWAYS external: it
 -- plugs in via ingest_adapter, a dotted path 'module.path:function_name'
 -- implementing the ingest contract documented in
--- test_framework/pipeline_adapter.py (see examples/reference_adapter.py).
+-- test_framework/pipeline_adapter.py (see examples/adapter_template.py).
 CREATE TABLE IF NOT EXISTS tf.environments (
     env_id            TEXT PRIMARY KEY,   -- 'local' | 'gcp'
     display_name      TEXT NOT NULL,
@@ -31,7 +31,7 @@ CREATE TABLE IF NOT EXISTS tf.environments (
     gcp_project       TEXT,
     gcs_bucket        TEXT,
     local_bucket_root TEXT,               -- used when storage_backend='local'
-    dataflow_region   TEXT NOT NULL DEFAULT 'us-central1',
+    region            TEXT,               -- cloud region, if applicable
     db_dsn_env_var    TEXT NOT NULL DEFAULT 'HR_PG_DSN',
     ingest_adapter    TEXT,               -- e.g. 'mycompany.qa_adapter:ingest_file'
     active            BOOLEAN NOT NULL DEFAULT TRUE
@@ -40,13 +40,13 @@ CREATE TABLE IF NOT EXISTS tf.environments (
 COMMENT ON COLUMN tf.environments.ingest_adapter IS
     'Dotted path module.path:function_name implementing the pipeline ingest '
     'contract (see test_framework/pipeline_adapter.py and '
-    'examples/reference_adapter.py).';
+    'examples/adapter_template.py).';
 
 -- Pipelines under test (lets the framework version them independently).
 CREATE TABLE IF NOT EXISTS tf.pipelines (
-    pipeline_id            TEXT PRIMARY KEY,  -- e.g. 'hr-workday-ndjson-v1'
+    pipeline_id            TEXT PRIMARY KEY,  -- e.g. 'sample-pipeline-v1'
     display_name           TEXT NOT NULL,
-    flex_template_gcs_path TEXT,              -- null until published to GCS
+    launch_config          JSONB,              -- pipeline-specific launch settings for your adapter
     pipeline_version       TEXT NOT NULL DEFAULT 'v1',
     active                 BOOLEAN NOT NULL DEFAULT TRUE
 );
