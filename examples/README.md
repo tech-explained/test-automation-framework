@@ -1,46 +1,30 @@
 # Examples
 
-These are **not part of the test framework**. They exist so you can run the
-framework end-to-end locally and see exactly how to plug in your own pipeline.
+These are **not part of the test framework**. They are starting points for
+plugging your own pipeline in and for authoring test cases.
 
-## `reference_pipeline/`
+## `adapter_template.py`
 
-A minimal HR data pipeline (Workday RaaS NDJSON → PostgreSQL, bronze/silver/gold,
-SCD Type 4, content-addressed idempotency). It was the original bundled pipeline
-the framework was built against; it now lives here as a working example.
+The ingest contract, documented with a Dataflow Flex Template skeleton.
+Copy it into your codebase, implement `ingest_file()` for your pipeline,
+and set `tf.environments.ingest_adapter` to your module's dotted path
+(e.g. `mycompany.qa_adapter:ingest_file`). The framework calls this one
+function per fixture file and blocks on it — trigger your job, **wait
+until it finishes**, return your pipeline's file identity.
 
-- `launcher.ingest_file(...)` — the entry point the example adapter calls.
-- `core.py` — pure logic (hashing, parsing, SCD decisions).
-- `transforms.py` / `main.py` — Beam/Dataflow bronze loading.
-- `dbio.py` — Postgres I/O.
+## `sample_seeds/`
 
-## `reference_pipeline/db/`
-
-The example's own database: `migrations/` (its `bronze`/`silver`/`gold`/
-`ops` schema — not the framework's), `seeds/` (environments, suites, and
-the 23-case HR QA matrix), and `apply.sh` which loads all of it plus the
-three JSON-spec cases from `fixtures/samples/`. Run after the framework
-migrations:
+Example `tf.*` seed data: sample environments, a sample pipeline row,
+suites, and illustrative test cases (`001_sample_seeds.sql`,
+`002_sample_seeds.sql`). The case SQL references illustrative table names
+— **adapt every assertion to your own pipeline's tables** before using.
+Apply after the framework migrations:
 
 ```bash
-bash scripts/migrate.sh                          # tf.* tables (framework)
-bash examples/reference_pipeline/db/apply.sh     # example schema + seeds
+bash scripts/migrate.sh
+psql "$HR_PG_DSN" -f examples/sample_seeds/001_sample_seeds.sql
+psql "$HR_PG_DSN" -f examples/sample_seeds/002_sample_seeds.sql
 ```
 
-## `reference_adapter.py`
-
-Implements the framework's ingest contract against the reference pipeline:
-
-```python
-def ingest_file(uri, *, file_name, as_of_date, env, actor) -> dict:
-    ...
-    return {"file_id": ..., "status": "completed", "error": None}
-```
-
-Copy this file as the starting point for your own adapter: trigger your
-Dataflow/Spark/dbt job, **block until it finishes**, then return your
-pipeline's file identity. Set `tf.environments.ingest_adapter` to your
-module's dotted path (e.g. `mycompany.qa_adapter:ingest_file`).
-
-The `local` environment seeds `ingest_adapter='examples.reference_adapter:ingest_file'`
-so a fresh checkout runs the full regression with no GCP needed.
+For programmatic case authoring, prefer `test_framework/add_case.py` with
+JSON specs (see `fixtures/samples/`).

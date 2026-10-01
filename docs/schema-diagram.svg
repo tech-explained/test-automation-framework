@@ -1,486 +1,241 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1700" height="1340" viewBox="0 0 1700 1340">
-<defs><marker id="ah" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto"><path d="M0,0 L8,4.5 L0,9 z" fill="#444"/></marker><marker id="ahb" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto"><path d="M0,0 L8,4.5 L0,9 z" fill="#1f6feb"/></marker><style>text{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}</style></defs>
-<rect width="1700" height="1340" fill="#ffffff"/>
-<text x="24" y="30" font-size="20" font-weight="bold" fill="#111">Test framework schema — hr-dataflow-gcp (PostgreSQL)</text>
-<text x="24" y="50" font-size="12" fill="#666">tf.* = framework metadata + results (written by the runner) · ops / bronze / silver = YOUR pipeline under test (assertions read them, never write) · pipeline plugs in via tf.environments.ingest_adapter</text>
-<text x="330" y="70" font-size="13" font-weight="bold" fill="#555" text-anchor="middle" letter-spacing="2">A · TEST DEFINITIONS</text>
-<text x="820" y="70" font-size="13" font-weight="bold" fill="#555" text-anchor="middle" letter-spacing="2">B · TEST EXECUTION</text>
-<text x="1330" y="70" font-size="13" font-weight="bold" fill="#555" text-anchor="middle" letter-spacing="2">C · PIPELINE DATA UNDER TEST</text>
-<rect x="20" y="80" width="300" height="130" rx="6" fill="#fff" stroke="#d0d7de" stroke-width="1.5"/>
-<rect x="20" y="80" width="300" height="34" rx="6" fill="#1f6feb"/>
-<rect x="20" y="108" width="300" height="6" fill="#1f6feb"/>
-<text x="32" y="102" font-size="14" font-weight="bold" fill="#fff">tf.suites</text>
-<text x="30" y="130" font-size="12" fill="#111">suite_id</text>
-<rect x="97.2" y="119" width="30" height="15" rx="7" fill="#1f2328" stroke="#999" stroke-width="0.8"/>
-<text x="112.2" y="130.5" font-size="9.5" fill="#ffffff" text-anchor="middle">PK</text>
-<text x="310" y="130" font-size="11" fill="#8a949e" text-anchor="end">TEXT</text>
-<line x1="28" y1="138" x2="312" y2="138" stroke="#eef1f4"/>
-<text x="30" y="154" font-size="12" fill="#111">display_name</text>
-<text x="310" y="154" font-size="11" fill="#8a949e" text-anchor="end">TEXT</text>
-<line x1="28" y1="162" x2="312" y2="162" stroke="#eef1f4"/>
-<text x="30" y="178" font-size="12" fill="#111">test_case_ids</text>
-<rect x="134.2" y="167" width="26" height="15" rx="7" fill="#1f6feb" stroke="#999" stroke-width="0.8"/>
-<text x="147.2" y="178.5" font-size="9.5" fill="#ffffff" text-anchor="middle">→</text>
-<text x="310" y="178" font-size="11" fill="#8a949e" text-anchor="end">JSONB</text>
-<line x1="28" y1="186" x2="312" y2="186" stroke="#eef1f4"/>
-<text x="30" y="202" font-size="12" fill="#111">active</text>
-<text x="310" y="202" font-size="11" fill="#8a949e" text-anchor="end">BOOL</text>
-<rect x="20" y="246" width="300" height="154" rx="6" fill="#fff" stroke="#d0d7de" stroke-width="1.5"/>
-<rect x="20" y="246" width="300" height="34" rx="6" fill="#1f6feb"/>
-<rect x="20" y="274" width="300" height="6" fill="#1f6feb"/>
-<text x="32" y="268" font-size="14" font-weight="bold" fill="#fff">tf.pipelines</text>
-<text x="30" y="296" font-size="12" fill="#111">pipeline_id</text>
-<rect x="119.4" y="285" width="30" height="15" rx="7" fill="#1f2328" stroke="#999" stroke-width="0.8"/>
-<text x="134.4" y="296.5" font-size="9.5" fill="#ffffff" text-anchor="middle">PK</text>
-<text x="310" y="296" font-size="11" fill="#8a949e" text-anchor="end">TEXT</text>
-<line x1="28" y1="304" x2="312" y2="304" stroke="#eef1f4"/>
-<text x="30" y="320" font-size="12" fill="#111">display_name</text>
-<text x="310" y="320" font-size="11" fill="#8a949e" text-anchor="end">TEXT</text>
-<line x1="28" y1="328" x2="312" y2="328" stroke="#eef1f4"/>
-<text x="30" y="344" font-size="12" fill="#111">flex_template_gcs_path</text>
-<text x="310" y="344" font-size="11" fill="#8a949e" text-anchor="end">TEXT</text>
-<line x1="28" y1="352" x2="312" y2="352" stroke="#eef1f4"/>
-<text x="30" y="368" font-size="12" fill="#111">pipeline_version</text>
-<text x="310" y="368" font-size="11" fill="#8a949e" text-anchor="end">TEXT</text>
-<line x1="28" y1="376" x2="312" y2="376" stroke="#eef1f4"/>
-<text x="30" y="392" font-size="12" fill="#111">active</text>
-<text x="310" y="392" font-size="11" fill="#8a949e" text-anchor="end">BOOL</text>
-<rect x="20" y="436" width="300" height="298" rx="6" fill="#fff" stroke="#d0d7de" stroke-width="1.5"/>
-<rect x="20" y="436" width="300" height="34" rx="6" fill="#1f6feb"/>
-<rect x="20" y="464" width="300" height="6" fill="#1f6feb"/>
-<text x="32" y="458" font-size="14" font-weight="bold" fill="#fff">tf.environments</text>
-<text x="30" y="486" font-size="12" fill="#111">env_id</text>
-<rect x="82.4" y="475" width="30" height="15" rx="7" fill="#1f2328" stroke="#999" stroke-width="0.8"/>
-<text x="97.4" y="486.5" font-size="9.5" fill="#ffffff" text-anchor="middle">PK</text>
-<text x="310" y="486" font-size="11" fill="#8a949e" text-anchor="end">TEXT</text>
-<line x1="28" y1="494" x2="312" y2="494" stroke="#eef1f4"/>
-<text x="30" y="510" font-size="12" fill="#111">display_name</text>
-<text x="310" y="510" font-size="11" fill="#8a949e" text-anchor="end">TEXT</text>
-<line x1="28" y1="518" x2="312" y2="518" stroke="#eef1f4"/>
-<text x="30" y="534" font-size="12" fill="#111">pipeline_mode</text>
-<text x="310" y="534" font-size="11" fill="#8a949e" text-anchor="end">TEXT</text>
-<line x1="28" y1="542" x2="312" y2="542" stroke="#eef1f4"/>
-<text x="30" y="558" font-size="12" fill="#111">storage_backend</text>
-<text x="310" y="558" font-size="11" fill="#8a949e" text-anchor="end">TEXT</text>
-<line x1="28" y1="566" x2="312" y2="566" stroke="#eef1f4"/>
-<text x="30" y="582" font-size="12" fill="#111">gcp_project</text>
-<text x="310" y="582" font-size="11" fill="#8a949e" text-anchor="end">TEXT</text>
-<line x1="28" y1="590" x2="312" y2="590" stroke="#eef1f4"/>
-<text x="30" y="606" font-size="12" fill="#111">gcs_bucket</text>
-<text x="310" y="606" font-size="11" fill="#8a949e" text-anchor="end">TEXT</text>
-<line x1="28" y1="614" x2="312" y2="614" stroke="#eef1f4"/>
-<text x="30" y="630" font-size="12" fill="#111">local_bucket_root</text>
-<text x="310" y="630" font-size="11" fill="#8a949e" text-anchor="end">TEXT</text>
-<line x1="28" y1="638" x2="312" y2="638" stroke="#eef1f4"/>
-<text x="30" y="654" font-size="12" fill="#111">dataflow_region</text>
-<text x="310" y="654" font-size="11" fill="#8a949e" text-anchor="end">TEXT</text>
-<line x1="28" y1="662" x2="312" y2="662" stroke="#eef1f4"/>
-<text x="30" y="678" font-size="12" fill="#111">db_dsn_env_var</text>
-<text x="310" y="678" font-size="11" fill="#8a949e" text-anchor="end">TEXT</text>
-<line x1="28" y1="686" x2="312" y2="686" stroke="#eef1f4"/>
-<text x="30" y="702" font-size="12" fill="#111">active</text>
-<text x="310" y="702" font-size="11" fill="#8a949e" text-anchor="end">BOOL</text>
-<line x1="28" y1="710" x2="312" y2="710" stroke="#eef1f4"/>
-<text x="30" y="726" font-size="12" fill="#111">ingest_adapter</text>
-<text x="310" y="726" font-size="11" fill="#8a949e" text-anchor="end">TEXT</text>
-<rect x="340" y="80" width="300" height="298" rx="6" fill="#fff" stroke="#d0d7de" stroke-width="1.5"/>
-<rect x="340" y="80" width="300" height="34" rx="6" fill="#1f6feb"/>
-<rect x="340" y="108" width="300" height="6" fill="#1f6feb"/>
-<text x="352" y="102" font-size="14" font-weight="bold" fill="#fff">tf.test_cases</text>
-<text x="350" y="130" font-size="12" fill="#111">test_case_id</text>
-<rect x="446.8" y="119" width="30" height="15" rx="7" fill="#1f2328" stroke="#999" stroke-width="0.8"/>
-<text x="461.8" y="130.5" font-size="9.5" fill="#ffffff" text-anchor="middle">PK</text>
-<text x="630" y="130" font-size="11" fill="#8a949e" text-anchor="end">TEXT</text>
-<line x1="348" y1="138" x2="632" y2="138" stroke="#eef1f4"/>
-<text x="350" y="154" font-size="12" fill="#111">name</text>
-<text x="630" y="154" font-size="11" fill="#8a949e" text-anchor="end">TEXT</text>
-<line x1="348" y1="162" x2="632" y2="162" stroke="#eef1f4"/>
-<text x="350" y="178" font-size="12" fill="#111">category</text>
-<text x="630" y="178" font-size="11" fill="#8a949e" text-anchor="end">TEXT</text>
-<line x1="348" y1="186" x2="632" y2="186" stroke="#eef1f4"/>
-<text x="350" y="202" font-size="12" fill="#111">description</text>
-<text x="630" y="202" font-size="11" fill="#8a949e" text-anchor="end">TEXT</text>
-<line x1="348" y1="210" x2="632" y2="210" stroke="#eef1f4"/>
-<text x="350" y="226" font-size="12" fill="#111">executions</text>
-<text x="630" y="226" font-size="11" fill="#8a949e" text-anchor="end">INT</text>
-<line x1="348" y1="234" x2="632" y2="234" stroke="#eef1f4"/>
-<text x="350" y="250" font-size="12" fill="#111">fixture_sequence</text>
-<text x="630" y="250" font-size="11" fill="#8a949e" text-anchor="end">JSONB</text>
-<line x1="348" y1="258" x2="632" y2="258" stroke="#eef1f4"/>
-<text x="350" y="274" font-size="12" fill="#111">pipeline_id</text>
-<rect x="439.4" y="263" width="30" height="15" rx="7" fill="#ffffff" stroke="#999" stroke-width="0.8"/>
-<text x="454.4" y="274.5" font-size="9.5" fill="#1f2328" text-anchor="middle">FK</text>
-<text x="630" y="274" font-size="11" fill="#8a949e" text-anchor="end">TEXT</text>
-<line x1="348" y1="282" x2="632" y2="282" stroke="#eef1f4"/>
-<text x="350" y="298" font-size="12" fill="#111">expectations</text>
-<text x="630" y="298" font-size="11" fill="#8a949e" text-anchor="end">JSONB</text>
-<line x1="348" y1="306" x2="632" y2="306" stroke="#eef1f4"/>
-<text x="350" y="322" font-size="12" fill="#111">enabled</text>
-<text x="630" y="322" font-size="11" fill="#8a949e" text-anchor="end">BOOL</text>
-<line x1="348" y1="330" x2="632" y2="330" stroke="#eef1f4"/>
-<text x="350" y="346" font-size="12" fill="#111">owner</text>
-<text x="630" y="346" font-size="11" fill="#8a949e" text-anchor="end">TEXT</text>
-<line x1="348" y1="354" x2="632" y2="354" stroke="#eef1f4"/>
-<text x="350" y="370" font-size="12" fill="#111">batchable</text>
-<text x="630" y="370" font-size="11" fill="#8a949e" text-anchor="end">BOOL</text>
-<rect x="670" y="80" width="300" height="226" rx="6" fill="#fff" stroke="#d0d7de" stroke-width="1.5"/>
-<rect x="670" y="80" width="300" height="34" rx="6" fill="#1f6feb"/>
-<rect x="670" y="108" width="300" height="6" fill="#1f6feb"/>
-<text x="682" y="102" font-size="14" font-weight="bold" fill="#fff">tf.test_runs</text>
-<text x="680" y="130" font-size="12" fill="#111">run_id</text>
-<rect x="732.4" y="119" width="30" height="15" rx="7" fill="#1f2328" stroke="#999" stroke-width="0.8"/>
-<text x="747.4" y="130.5" font-size="9.5" fill="#ffffff" text-anchor="middle">PK</text>
-<text x="960" y="130" font-size="11" fill="#8a949e" text-anchor="end">UUID</text>
-<line x1="678" y1="138" x2="962" y2="138" stroke="#eef1f4"/>
-<text x="680" y="154" font-size="12" fill="#111">env_id</text>
-<rect x="732.4" y="143" width="30" height="15" rx="7" fill="#ffffff" stroke="#999" stroke-width="0.8"/>
-<text x="747.4" y="154.5" font-size="9.5" fill="#1f2328" text-anchor="middle">FK</text>
-<text x="960" y="154" font-size="11" fill="#8a949e" text-anchor="end">TEXT</text>
-<line x1="678" y1="162" x2="962" y2="162" stroke="#eef1f4"/>
-<text x="680" y="178" font-size="12" fill="#111">suite</text>
-<text x="960" y="178" font-size="11" fill="#8a949e" text-anchor="end">TEXT</text>
-<line x1="678" y1="186" x2="962" y2="186" stroke="#eef1f4"/>
-<text x="680" y="202" font-size="12" fill="#111">status</text>
-<text x="960" y="202" font-size="11" fill="#8a949e" text-anchor="end">TEXT</text>
-<line x1="678" y1="210" x2="962" y2="210" stroke="#eef1f4"/>
-<text x="680" y="226" font-size="12" fill="#111">triggered_by</text>
-<text x="960" y="226" font-size="11" fill="#8a949e" text-anchor="end">TEXT</text>
-<line x1="678" y1="234" x2="962" y2="234" stroke="#eef1f4"/>
-<text x="680" y="250" font-size="12" fill="#111">started_at</text>
-<text x="960" y="250" font-size="11" fill="#8a949e" text-anchor="end">TIMESTAMPTZ</text>
-<line x1="678" y1="258" x2="962" y2="258" stroke="#eef1f4"/>
-<text x="680" y="274" font-size="12" fill="#111">finished_at</text>
-<text x="960" y="274" font-size="11" fill="#8a949e" text-anchor="end">TIMESTAMPTZ</text>
-<line x1="678" y1="282" x2="962" y2="282" stroke="#eef1f4"/>
-<text x="680" y="298" font-size="12" fill="#111">summary</text>
-<text x="960" y="298" font-size="11" fill="#8a949e" text-anchor="end">JSONB</text>
-<rect x="670" y="342" width="300" height="274" rx="6" fill="#fff" stroke="#d0d7de" stroke-width="1.5"/>
-<rect x="670" y="342" width="300" height="34" rx="6" fill="#1f6feb"/>
-<rect x="670" y="370" width="300" height="6" fill="#1f6feb"/>
-<text x="682" y="364" font-size="14" font-weight="bold" fill="#fff">tf.test_case_results</text>
-<text x="680" y="392" font-size="12" fill="#111">run_id</text>
-<rect x="732.4" y="381" width="30" height="15" rx="7" fill="#ffffff" stroke="#999" stroke-width="0.8"/>
-<text x="747.4" y="392.5" font-size="9.5" fill="#1f2328" text-anchor="middle">FK</text>
-<text x="960" y="392" font-size="11" fill="#8a949e" text-anchor="end">UUID</text>
-<line x1="678" y1="400" x2="962" y2="400" stroke="#eef1f4"/>
-<text x="680" y="416" font-size="12" fill="#111">test_case_id</text>
-<rect x="776.8" y="405" width="30" height="15" rx="7" fill="#ffffff" stroke="#999" stroke-width="0.8"/>
-<text x="791.8" y="416.5" font-size="9.5" fill="#1f2328" text-anchor="middle">FK</text>
-<text x="960" y="416" font-size="11" fill="#8a949e" text-anchor="end">TEXT</text>
-<line x1="678" y1="424" x2="962" y2="424" stroke="#eef1f4"/>
-<text x="680" y="440" font-size="12" fill="#111">execution_no</text>
-<text x="960" y="440" font-size="11" fill="#8a949e" text-anchor="end">INT</text>
-<line x1="678" y1="448" x2="962" y2="448" stroke="#eef1f4"/>
-<text x="680" y="464" font-size="12" fill="#111">status</text>
-<text x="960" y="464" font-size="11" fill="#8a949e" text-anchor="end">TEXT</text>
-<line x1="678" y1="472" x2="962" y2="472" stroke="#eef1f4"/>
-<text x="680" y="488" font-size="12" fill="#111">gcs_uris</text>
-<text x="960" y="488" font-size="11" fill="#8a949e" text-anchor="end">JSONB</text>
-<line x1="678" y1="496" x2="962" y2="496" stroke="#eef1f4"/>
-<text x="680" y="512" font-size="12" fill="#111">file_ids</text>
-<text x="960" y="512" font-size="11" fill="#8a949e" text-anchor="end">JSONB</text>
-<line x1="678" y1="520" x2="962" y2="520" stroke="#eef1f4"/>
-<text x="680" y="536" font-size="12" fill="#111">load_statuses</text>
-<text x="960" y="536" font-size="11" fill="#8a949e" text-anchor="end">JSONB</text>
-<line x1="678" y1="544" x2="962" y2="544" stroke="#eef1f4"/>
-<text x="680" y="560" font-size="12" fill="#111">started_at</text>
-<text x="960" y="560" font-size="11" fill="#8a949e" text-anchor="end">TIMESTAMPTZ</text>
-<line x1="678" y1="568" x2="962" y2="568" stroke="#eef1f4"/>
-<text x="680" y="584" font-size="12" fill="#111">finished_at</text>
-<text x="960" y="584" font-size="11" fill="#8a949e" text-anchor="end">TIMESTAMPTZ</text>
-<line x1="678" y1="592" x2="962" y2="592" stroke="#eef1f4"/>
-<text x="680" y="608" font-size="12" fill="#111">details</text>
-<text x="960" y="608" font-size="11" fill="#8a949e" text-anchor="end">JSONB</text>
-<rect x="670" y="652" width="300" height="298" rx="6" fill="#fff" stroke="#d0d7de" stroke-width="1.5"/>
-<rect x="670" y="652" width="300" height="34" rx="6" fill="#1f6feb"/>
-<rect x="670" y="680" width="300" height="6" fill="#1f6feb"/>
-<text x="682" y="674" font-size="14" font-weight="bold" fill="#fff">tf.assertion_results</text>
-<text x="680" y="702" font-size="12" fill="#111">assertion_id</text>
-<rect x="776.8" y="691" width="30" height="15" rx="7" fill="#1f2328" stroke="#999" stroke-width="0.8"/>
-<text x="791.8" y="702.5" font-size="9.5" fill="#ffffff" text-anchor="middle">PK</text>
-<text x="960" y="702" font-size="11" fill="#8a949e" text-anchor="end">BIGSERIAL</text>
-<line x1="678" y1="710" x2="962" y2="710" stroke="#eef1f4"/>
-<text x="680" y="726" font-size="12" fill="#111">run_id</text>
-<text x="960" y="726" font-size="11" fill="#8a949e" text-anchor="end">UUID</text>
-<line x1="678" y1="734" x2="962" y2="734" stroke="#eef1f4"/>
-<text x="680" y="750" font-size="12" fill="#111">test_case_id</text>
-<text x="960" y="750" font-size="11" fill="#8a949e" text-anchor="end">TEXT</text>
-<line x1="678" y1="758" x2="962" y2="758" stroke="#eef1f4"/>
-<text x="680" y="774" font-size="12" fill="#111">execution_no</text>
-<text x="960" y="774" font-size="11" fill="#8a949e" text-anchor="end">INT</text>
-<line x1="678" y1="782" x2="962" y2="782" stroke="#eef1f4"/>
-<text x="680" y="798" font-size="12" fill="#111">name</text>
-<text x="960" y="798" font-size="11" fill="#8a949e" text-anchor="end">TEXT</text>
-<line x1="678" y1="806" x2="962" y2="806" stroke="#eef1f4"/>
-<text x="680" y="822" font-size="12" fill="#111">kind</text>
-<text x="960" y="822" font-size="11" fill="#8a949e" text-anchor="end">TEXT</text>
-<line x1="678" y1="830" x2="962" y2="830" stroke="#eef1f4"/>
-<text x="680" y="846" font-size="12" fill="#111">status</text>
-<text x="960" y="846" font-size="11" fill="#8a949e" text-anchor="end">TEXT</text>
-<line x1="678" y1="854" x2="962" y2="854" stroke="#eef1f4"/>
-<text x="680" y="870" font-size="12" fill="#111">expected</text>
-<text x="960" y="870" font-size="11" fill="#8a949e" text-anchor="end">JSONB</text>
-<line x1="678" y1="878" x2="962" y2="878" stroke="#eef1f4"/>
-<text x="680" y="894" font-size="12" fill="#111">actual</text>
-<text x="960" y="894" font-size="11" fill="#8a949e" text-anchor="end">JSONB</text>
-<line x1="678" y1="902" x2="962" y2="902" stroke="#eef1f4"/>
-<text x="680" y="918" font-size="12" fill="#111">message</text>
-<text x="960" y="918" font-size="11" fill="#8a949e" text-anchor="end">TEXT</text>
-<line x1="678" y1="926" x2="962" y2="926" stroke="#eef1f4"/>
-<text x="680" y="942" font-size="12" fill="#111">checked_at</text>
-<text x="960" y="942" font-size="11" fill="#8a949e" text-anchor="end">TIMESTAMPTZ</text>
-<rect x="1000" y="80" width="320" height="322" rx="6" fill="#fff" stroke="#d0d7de" stroke-width="1.5"/>
-<rect x="1000" y="80" width="320" height="34" rx="6" fill="#1a7f37"/>
-<rect x="1000" y="108" width="320" height="6" fill="#1a7f37"/>
-<text x="1012" y="102" font-size="14" font-weight="bold" fill="#fff">ops.file_ingestions</text>
-<text x="1010" y="130" font-size="12" fill="#111">file_id</text>
-<rect x="1069.8" y="119" width="30" height="15" rx="7" fill="#1f2328" stroke="#999" stroke-width="0.8"/>
-<text x="1084.8" y="130.5" font-size="9.5" fill="#ffffff" text-anchor="middle">PK</text>
-<text x="1310" y="130" font-size="11" fill="#8a949e" text-anchor="end">UUID</text>
-<line x1="1008" y1="138" x2="1312" y2="138" stroke="#eef1f4"/>
-<text x="1010" y="154" font-size="12" fill="#111">file_name</text>
-<text x="1310" y="154" font-size="11" fill="#8a949e" text-anchor="end">TEXT</text>
-<line x1="1008" y1="162" x2="1312" y2="162" stroke="#eef1f4"/>
-<text x="1010" y="178" font-size="12" fill="#111">gcs_uri</text>
-<text x="1310" y="178" font-size="11" fill="#8a949e" text-anchor="end">TEXT</text>
-<line x1="1008" y1="186" x2="1312" y2="186" stroke="#eef1f4"/>
-<text x="1010" y="202" font-size="12" fill="#111">file_sha256</text>
-<rect x="1099.4" y="191" width="30" height="15" rx="7" fill="#ffffff" stroke="#999" stroke-width="0.8"/>
-<text x="1114.4" y="202.5" font-size="9.5" fill="#1f2328" text-anchor="middle">UQ</text>
-<text x="1310" y="202" font-size="11" fill="#8a949e" text-anchor="end">TEXT</text>
-<line x1="1008" y1="210" x2="1312" y2="210" stroke="#eef1f4"/>
-<text x="1010" y="226" font-size="12" fill="#111">as_of_date</text>
-<text x="1310" y="226" font-size="11" fill="#8a949e" text-anchor="end">DATE</text>
-<line x1="1008" y1="234" x2="1312" y2="234" stroke="#eef1f4"/>
-<text x="1010" y="250" font-size="12" fill="#111">status</text>
-<text x="1310" y="250" font-size="11" fill="#8a949e" text-anchor="end">TEXT</text>
-<line x1="1008" y1="258" x2="1312" y2="258" stroke="#eef1f4"/>
-<text x="1160.0" y="274" font-size="12" font-style="italic" fill="#999" text-anchor="middle">… 6 row counters …</text>
-<line x1="1008" y1="282" x2="1312" y2="282" stroke="#eef1f4"/>
-<text x="1010" y="298" font-size="12" fill="#111">dq_warnings</text>
-<text x="1310" y="298" font-size="11" fill="#8a949e" text-anchor="end">JSONB</text>
-<line x1="1008" y1="306" x2="1312" y2="306" stroke="#eef1f4"/>
-<text x="1010" y="322" font-size="12" fill="#111">error</text>
-<text x="1310" y="322" font-size="11" fill="#8a949e" text-anchor="end">TEXT</text>
-<line x1="1008" y1="330" x2="1312" y2="330" stroke="#eef1f4"/>
-<text x="1010" y="346" font-size="12" fill="#111">created_at</text>
-<text x="1310" y="346" font-size="11" fill="#8a949e" text-anchor="end">TIMESTAMPTZ</text>
-<line x1="1008" y1="354" x2="1312" y2="354" stroke="#eef1f4"/>
-<text x="1010" y="370" font-size="12" fill="#111">started_at</text>
-<text x="1310" y="370" font-size="11" fill="#8a949e" text-anchor="end">TIMESTAMPTZ</text>
-<line x1="1008" y1="378" x2="1312" y2="378" stroke="#eef1f4"/>
-<text x="1010" y="394" font-size="12" fill="#111">finished_at</text>
-<text x="1310" y="394" font-size="11" fill="#8a949e" text-anchor="end">TIMESTAMPTZ</text>
-<rect x="1000" y="438" width="320" height="226" rx="6" fill="#fff" stroke="#d0d7de" stroke-width="1.5"/>
-<rect x="1000" y="438" width="320" height="34" rx="6" fill="#1a7f37"/>
-<rect x="1000" y="466" width="320" height="6" fill="#1a7f37"/>
-<text x="1012" y="460" font-size="14" font-weight="bold" fill="#fff">ops.pipeline_runs</text>
-<text x="1010" y="488" font-size="12" fill="#111">run_id</text>
-<rect x="1062.4" y="477" width="30" height="15" rx="7" fill="#1f2328" stroke="#999" stroke-width="0.8"/>
-<text x="1077.4" y="488.5" font-size="9.5" fill="#ffffff" text-anchor="middle">PK</text>
-<text x="1310" y="488" font-size="11" fill="#8a949e" text-anchor="end">UUID</text>
-<line x1="1008" y1="496" x2="1312" y2="496" stroke="#eef1f4"/>
-<text x="1010" y="512" font-size="12" fill="#111">file_id</text>
-<rect x="1069.8" y="501" width="30" height="15" rx="7" fill="#ffffff" stroke="#999" stroke-width="0.8"/>
-<text x="1084.8" y="512.5" font-size="9.5" fill="#1f2328" text-anchor="middle">FK</text>
-<text x="1310" y="512" font-size="11" fill="#8a949e" text-anchor="end">UUID</text>
-<line x1="1008" y1="520" x2="1312" y2="520" stroke="#eef1f4"/>
-<text x="1010" y="536" font-size="12" fill="#111">dataflow_job_id</text>
-<text x="1310" y="536" font-size="11" fill="#8a949e" text-anchor="end">TEXT</text>
-<line x1="1008" y1="544" x2="1312" y2="544" stroke="#eef1f4"/>
-<text x="1010" y="560" font-size="12" fill="#111">mode</text>
-<text x="1310" y="560" font-size="11" fill="#8a949e" text-anchor="end">TEXT</text>
-<line x1="1008" y1="568" x2="1312" y2="568" stroke="#eef1f4"/>
-<text x="1010" y="584" font-size="12" fill="#111">status</text>
-<text x="1310" y="584" font-size="11" fill="#8a949e" text-anchor="end">TEXT</text>
-<line x1="1008" y1="592" x2="1312" y2="592" stroke="#eef1f4"/>
-<text x="1010" y="608" font-size="12" fill="#111">started_at</text>
-<text x="1310" y="608" font-size="11" fill="#8a949e" text-anchor="end">TIMESTAMPTZ</text>
-<line x1="1008" y1="616" x2="1312" y2="616" stroke="#eef1f4"/>
-<text x="1010" y="632" font-size="12" fill="#111">finished_at</text>
-<text x="1310" y="632" font-size="11" fill="#8a949e" text-anchor="end">TIMESTAMPTZ</text>
-<line x1="1008" y1="640" x2="1312" y2="640" stroke="#eef1f4"/>
-<text x="1010" y="656" font-size="12" fill="#111">details</text>
-<text x="1310" y="656" font-size="11" fill="#8a949e" text-anchor="end">JSONB</text>
-<rect x="1000" y="700" width="320" height="202" rx="6" fill="#fff" stroke="#d0d7de" stroke-width="1.5"/>
-<rect x="1000" y="700" width="320" height="34" rx="6" fill="#1a7f37"/>
-<rect x="1000" y="728" width="320" height="6" fill="#1a7f37"/>
-<text x="1012" y="722" font-size="14" font-weight="bold" fill="#fff">ops.audit_log</text>
-<text x="1010" y="750" font-size="12" fill="#111">audit_id</text>
-<rect x="1077.2" y="739" width="30" height="15" rx="7" fill="#1f2328" stroke="#999" stroke-width="0.8"/>
-<text x="1092.2" y="750.5" font-size="9.5" fill="#ffffff" text-anchor="middle">PK</text>
-<text x="1310" y="750" font-size="11" fill="#8a949e" text-anchor="end">BIGSERIAL</text>
-<line x1="1008" y1="758" x2="1312" y2="758" stroke="#eef1f4"/>
-<text x="1010" y="774" font-size="12" fill="#111">ts</text>
-<text x="1310" y="774" font-size="11" fill="#8a949e" text-anchor="end">TIMESTAMPTZ</text>
-<line x1="1008" y1="782" x2="1312" y2="782" stroke="#eef1f4"/>
-<text x="1010" y="798" font-size="12" fill="#111">actor</text>
-<text x="1310" y="798" font-size="11" fill="#8a949e" text-anchor="end">TEXT</text>
-<line x1="1008" y1="806" x2="1312" y2="806" stroke="#eef1f4"/>
-<text x="1010" y="822" font-size="12" fill="#111">action</text>
-<text x="1310" y="822" font-size="11" fill="#8a949e" text-anchor="end">TEXT</text>
-<line x1="1008" y1="830" x2="1312" y2="830" stroke="#eef1f4"/>
-<text x="1010" y="846" font-size="12" fill="#111">entity</text>
-<text x="1310" y="846" font-size="11" fill="#8a949e" text-anchor="end">TEXT</text>
-<line x1="1008" y1="854" x2="1312" y2="854" stroke="#eef1f4"/>
-<text x="1010" y="870" font-size="12" fill="#111">entity_id</text>
-<text x="1310" y="870" font-size="11" fill="#8a949e" text-anchor="end">TEXT</text>
-<line x1="1008" y1="878" x2="1312" y2="878" stroke="#eef1f4"/>
-<text x="1010" y="894" font-size="12" fill="#111">details</text>
-<text x="1310" y="894" font-size="11" fill="#8a949e" text-anchor="end">JSONB</text>
-<rect x="1340" y="80" width="320" height="202" rx="6" fill="#fff" stroke="#d0d7de" stroke-width="1.5"/>
-<rect x="1340" y="80" width="320" height="34" rx="6" fill="#9a6700"/>
-<rect x="1340" y="108" width="320" height="6" fill="#9a6700"/>
-<text x="1352" y="102" font-size="14" font-weight="bold" fill="#fff">bronze.raw_worker_events</text>
-<text x="1350" y="130" font-size="12" fill="#111">file_id</text>
-<rect x="1409.8" y="119" width="30" height="15" rx="7" fill="#1f2328" stroke="#999" stroke-width="0.8"/>
-<text x="1424.8" y="130.5" font-size="9.5" fill="#ffffff" text-anchor="middle">PK</text>
-<text x="1650" y="130" font-size="11" fill="#8a949e" text-anchor="end">UUID</text>
-<line x1="1348" y1="138" x2="1652" y2="138" stroke="#eef1f4"/>
-<text x="1350" y="154" font-size="12" fill="#111">file_name</text>
-<text x="1650" y="154" font-size="11" fill="#8a949e" text-anchor="end">TEXT</text>
-<line x1="1348" y1="162" x2="1652" y2="162" stroke="#eef1f4"/>
-<text x="1350" y="178" font-size="12" fill="#111">line_no</text>
-<rect x="1409.8" y="167" width="30" height="15" rx="7" fill="#1f2328" stroke="#999" stroke-width="0.8"/>
-<text x="1424.8" y="178.5" font-size="9.5" fill="#ffffff" text-anchor="middle">PK</text>
-<text x="1650" y="178" font-size="11" fill="#8a949e" text-anchor="end">INT</text>
-<line x1="1348" y1="186" x2="1652" y2="186" stroke="#eef1f4"/>
-<text x="1350" y="202" font-size="12" fill="#111">ingested_at</text>
-<text x="1650" y="202" font-size="11" fill="#8a949e" text-anchor="end">TIMESTAMPTZ</text>
-<line x1="1348" y1="210" x2="1652" y2="210" stroke="#eef1f4"/>
-<text x="1350" y="226" font-size="12" fill="#111">as_of_date</text>
-<text x="1650" y="226" font-size="11" fill="#8a949e" text-anchor="end">DATE</text>
-<line x1="1348" y1="234" x2="1652" y2="234" stroke="#eef1f4"/>
-<text x="1350" y="250" font-size="12" fill="#111">worker_json</text>
-<text x="1650" y="250" font-size="11" fill="#8a949e" text-anchor="end">JSONB</text>
-<line x1="1348" y1="258" x2="1652" y2="258" stroke="#eef1f4"/>
-<text x="1350" y="274" font-size="12" fill="#111">row_hash</text>
-<text x="1650" y="274" font-size="11" fill="#8a949e" text-anchor="end">TEXT</text>
-<rect x="1340" y="318" width="320" height="202" rx="6" fill="#fff" stroke="#d0d7de" stroke-width="1.5"/>
-<rect x="1340" y="318" width="320" height="34" rx="6" fill="#9a6700"/>
-<rect x="1340" y="346" width="320" height="6" fill="#9a6700"/>
-<text x="1352" y="340" font-size="14" font-weight="bold" fill="#fff">bronze.raw_worker_rejects</text>
-<text x="1350" y="368" font-size="12" fill="#111">reject_id</text>
-<rect x="1424.6" y="357" width="30" height="15" rx="7" fill="#1f2328" stroke="#999" stroke-width="0.8"/>
-<text x="1439.6" y="368.5" font-size="9.5" fill="#ffffff" text-anchor="middle">PK</text>
-<text x="1650" y="368" font-size="11" fill="#8a949e" text-anchor="end">BIGSERIAL</text>
-<line x1="1348" y1="376" x2="1652" y2="376" stroke="#eef1f4"/>
-<text x="1350" y="392" font-size="12" fill="#111">file_id</text>
-<text x="1650" y="392" font-size="11" fill="#8a949e" text-anchor="end">UUID</text>
-<line x1="1348" y1="400" x2="1652" y2="400" stroke="#eef1f4"/>
-<text x="1350" y="416" font-size="12" fill="#111">file_name</text>
-<text x="1650" y="416" font-size="11" fill="#8a949e" text-anchor="end">TEXT</text>
-<line x1="1348" y1="424" x2="1652" y2="424" stroke="#eef1f4"/>
-<text x="1350" y="440" font-size="12" fill="#111">line_no</text>
-<text x="1650" y="440" font-size="11" fill="#8a949e" text-anchor="end">INT</text>
-<line x1="1348" y1="448" x2="1652" y2="448" stroke="#eef1f4"/>
-<text x="1350" y="464" font-size="12" fill="#111">raw_line</text>
-<text x="1650" y="464" font-size="11" fill="#8a949e" text-anchor="end">TEXT</text>
-<line x1="1348" y1="472" x2="1652" y2="472" stroke="#eef1f4"/>
-<text x="1350" y="488" font-size="12" fill="#111">error</text>
-<text x="1650" y="488" font-size="11" fill="#8a949e" text-anchor="end">TEXT</text>
-<line x1="1348" y1="496" x2="1652" y2="496" stroke="#eef1f4"/>
-<text x="1350" y="512" font-size="12" fill="#111">ingested_at</text>
-<text x="1650" y="512" font-size="11" fill="#8a949e" text-anchor="end">TIMESTAMPTZ</text>
-<rect x="1340" y="556" width="320" height="298" rx="6" fill="#fff" stroke="#d0d7de" stroke-width="1.5"/>
-<rect x="1340" y="556" width="320" height="34" rx="6" fill="#6e40c9"/>
-<rect x="1340" y="584" width="320" height="6" fill="#6e40c9"/>
-<text x="1352" y="578" font-size="14" font-weight="bold" fill="#fff">silver.workers_current</text>
-<text x="1350" y="606" font-size="12" fill="#111">worker_id</text>
-<rect x="1424.6" y="595" width="30" height="15" rx="7" fill="#1f2328" stroke="#999" stroke-width="0.8"/>
-<text x="1439.6" y="606.5" font-size="9.5" fill="#ffffff" text-anchor="middle">PK</text>
-<text x="1650" y="606" font-size="11" fill="#8a949e" text-anchor="end">TEXT</text>
-<line x1="1348" y1="614" x2="1652" y2="614" stroke="#eef1f4"/>
-<text x="1500.0" y="630" font-size="12" font-style="italic" fill="#999" text-anchor="middle">… 22 typed columns …</text>
-<line x1="1348" y1="638" x2="1652" y2="638" stroke="#eef1f4"/>
-<text x="1350" y="654" font-size="12" fill="#111">attributes</text>
-<text x="1650" y="654" font-size="11" fill="#8a949e" text-anchor="end">JSONB</text>
-<line x1="1348" y1="662" x2="1652" y2="662" stroke="#eef1f4"/>
-<text x="1350" y="678" font-size="12" fill="#111">record_hash</text>
-<text x="1650" y="678" font-size="11" fill="#8a949e" text-anchor="end">TEXT</text>
-<line x1="1348" y1="686" x2="1652" y2="686" stroke="#eef1f4"/>
-<text x="1350" y="702" font-size="12" fill="#111">source_file_id</text>
-<text x="1650" y="702" font-size="11" fill="#8a949e" text-anchor="end">UUID</text>
-<line x1="1348" y1="710" x2="1652" y2="710" stroke="#eef1f4"/>
-<text x="1350" y="726" font-size="12" fill="#111">source_line_no</text>
-<text x="1650" y="726" font-size="11" fill="#8a949e" text-anchor="end">INT</text>
-<line x1="1348" y1="734" x2="1652" y2="734" stroke="#eef1f4"/>
-<text x="1350" y="750" font-size="12" fill="#111">as_of_date</text>
-<text x="1650" y="750" font-size="11" fill="#8a949e" text-anchor="end">DATE</text>
-<line x1="1348" y1="758" x2="1652" y2="758" stroke="#eef1f4"/>
-<text x="1350" y="774" font-size="12" fill="#111">last_seen_as_of_date</text>
-<text x="1650" y="774" font-size="11" fill="#8a949e" text-anchor="end">DATE</text>
-<line x1="1348" y1="782" x2="1652" y2="782" stroke="#eef1f4"/>
-<text x="1350" y="798" font-size="12" fill="#111">valid_from</text>
-<text x="1650" y="798" font-size="11" fill="#8a949e" text-anchor="end">TIMESTAMPTZ</text>
-<line x1="1348" y1="806" x2="1652" y2="806" stroke="#eef1f4"/>
-<text x="1350" y="822" font-size="12" fill="#111">version</text>
-<text x="1650" y="822" font-size="11" fill="#8a949e" text-anchor="end">INT</text>
-<line x1="1348" y1="830" x2="1652" y2="830" stroke="#eef1f4"/>
-<text x="1350" y="846" font-size="12" fill="#111">updated_at</text>
-<text x="1650" y="846" font-size="11" fill="#8a949e" text-anchor="end">TIMESTAMPTZ</text>
-<rect x="1340" y="890" width="320" height="370" rx="6" fill="#fff" stroke="#d0d7de" stroke-width="1.5"/>
-<rect x="1340" y="890" width="320" height="34" rx="6" fill="#6e40c9"/>
-<rect x="1340" y="918" width="320" height="6" fill="#6e40c9"/>
-<text x="1352" y="912" font-size="14" font-weight="bold" fill="#fff">silver.workers_history</text>
-<text x="1350" y="940" font-size="12" fill="#111">history_id</text>
-<rect x="1432.0" y="929" width="30" height="15" rx="7" fill="#1f2328" stroke="#999" stroke-width="0.8"/>
-<text x="1447.0" y="940.5" font-size="9.5" fill="#ffffff" text-anchor="middle">PK</text>
-<text x="1650" y="940" font-size="11" fill="#8a949e" text-anchor="end">BIGSERIAL</text>
-<line x1="1348" y1="948" x2="1652" y2="948" stroke="#eef1f4"/>
-<text x="1350" y="964" font-size="12" fill="#111">worker_id</text>
-<text x="1650" y="964" font-size="11" fill="#8a949e" text-anchor="end">TEXT</text>
-<line x1="1348" y1="972" x2="1652" y2="972" stroke="#eef1f4"/>
-<text x="1500.0" y="988" font-size="12" font-style="italic" fill="#999" text-anchor="middle">… 22 typed columns …</text>
-<line x1="1348" y1="996" x2="1652" y2="996" stroke="#eef1f4"/>
-<text x="1350" y="1012" font-size="12" fill="#111">attributes</text>
-<text x="1650" y="1012" font-size="11" fill="#8a949e" text-anchor="end">JSONB</text>
-<line x1="1348" y1="1020" x2="1652" y2="1020" stroke="#eef1f4"/>
-<text x="1350" y="1036" font-size="12" fill="#111">record_hash</text>
-<text x="1650" y="1036" font-size="11" fill="#8a949e" text-anchor="end">TEXT</text>
-<line x1="1348" y1="1044" x2="1652" y2="1044" stroke="#eef1f4"/>
-<text x="1350" y="1060" font-size="12" fill="#111">source_file_id</text>
-<text x="1650" y="1060" font-size="11" fill="#8a949e" text-anchor="end">UUID</text>
-<line x1="1348" y1="1068" x2="1652" y2="1068" stroke="#eef1f4"/>
-<text x="1350" y="1084" font-size="12" fill="#111">source_line_no</text>
-<text x="1650" y="1084" font-size="11" fill="#8a949e" text-anchor="end">INT</text>
-<line x1="1348" y1="1092" x2="1652" y2="1092" stroke="#eef1f4"/>
-<text x="1350" y="1108" font-size="12" fill="#111">as_of_date</text>
-<text x="1650" y="1108" font-size="11" fill="#8a949e" text-anchor="end">DATE</text>
-<line x1="1348" y1="1116" x2="1652" y2="1116" stroke="#eef1f4"/>
-<text x="1350" y="1132" font-size="12" fill="#111">last_seen_as_of_date</text>
-<text x="1650" y="1132" font-size="11" fill="#8a949e" text-anchor="end">DATE</text>
-<line x1="1348" y1="1140" x2="1652" y2="1140" stroke="#eef1f4"/>
-<text x="1350" y="1156" font-size="12" fill="#111">valid_from</text>
-<text x="1650" y="1156" font-size="11" fill="#8a949e" text-anchor="end">TIMESTAMPTZ</text>
-<line x1="1348" y1="1164" x2="1652" y2="1164" stroke="#eef1f4"/>
-<text x="1350" y="1180" font-size="12" fill="#111">valid_to</text>
-<text x="1650" y="1180" font-size="11" fill="#8a949e" text-anchor="end">TIMESTAMPTZ</text>
-<line x1="1348" y1="1188" x2="1652" y2="1188" stroke="#eef1f4"/>
-<text x="1350" y="1204" font-size="12" fill="#111">version</text>
-<text x="1650" y="1204" font-size="11" fill="#8a949e" text-anchor="end">INT</text>
-<line x1="1348" y1="1212" x2="1652" y2="1212" stroke="#eef1f4"/>
-<text x="1350" y="1228" font-size="12" fill="#111">superseded_by_file_id</text>
-<text x="1650" y="1228" font-size="11" fill="#8a949e" text-anchor="end">UUID</text>
-<line x1="1348" y1="1236" x2="1652" y2="1236" stroke="#eef1f4"/>
-<text x="1350" y="1252" font-size="12" fill="#111">archived_at</text>
-<text x="1650" y="1252" font-size="11" fill="#8a949e" text-anchor="end">TIMESTAMPTZ</text>
-<line x1="320" y1="174.0" x2="338" y2="126.0" stroke="#1f6feb" stroke-width="1.8" stroke-dasharray="7,5" marker-end="url(#ahb)"/>
-<line x1="320" y1="292.0" x2="338" y2="270.0" stroke="#555" stroke-width="1.8"  marker-end="url(#ah)"/>
-<path d="M320,482.0 L655,482.0 L655,150.0 L668,150.0" fill="none" stroke="#555" stroke-width="1.8"  marker-end="url(#ah)"/>
-<text x="560" y="474.0" font-size="11" fill="#555">env_id</text>
-<line x1="640" y1="126.0" x2="668" y2="412.0" stroke="#555" stroke-width="1.8"  marker-end="url(#ah)"/>
-<line x1="820" y1="306" x2="820" y2="340" stroke="#555" stroke-width="1.8"  marker-end="url(#ah)"/>
-<text x="828" y="328" font-size="11" fill="#555">run_id</text>
-<line x1="820" y1="616" x2="820" y2="650" stroke="#1f6feb" stroke-width="1.8" stroke-dasharray="7,5" marker-end="url(#ahb)"/>
-<text x="828" y="640" font-size="11" fill="#1f6feb">logical, no FK</text>
-<line x1="1160" y1="664" x2="1160" y2="404" stroke="#555" stroke-width="1.8"  marker-end="url(#ah)"/>
-<text x="1168" y="540" font-size="11" fill="#555">file_id</text>
-<text x="24" y="1300" font-size="12" font-weight="bold" fill="#333">Legend:</text>
-<line x1="100" y1="1296" x2="150" y2="1296" stroke="#555" stroke-width="1.8" marker-end="url(#ah)"/>
-<text x="158" y="1300" font-size="12" fill="#333">foreign key</text>
-<line x1="280" y1="1296" x2="330" y2="1296" stroke="#1f6feb" stroke-width="1.8" stroke-dasharray="7,5" marker-end="url(#ahb)"/>
-<text x="338" y="1300" font-size="12" fill="#333">JSONB membership / logical link</text>
-<text x="640" y="1300" font-size="12" fill="#333">Assertions (sql_scalar / sql_row / file_bytes / file_rows) read ops · bronze · silver — never write.</text>
-<text x="24" y="1322" font-size="11" fill="#777">Runner flow: reads tf.test_cases → ingests fixtures → writes tf.test_runs / tf.test_case_results / tf.assertion_results. Idempotency: ops.file_ingestions.file_sha256 is UNIQUE.</text>
+<svg xmlns="http://www.w3.org/2000/svg" width="804" height="1236" viewBox="0 0 804 1236">
+<defs><marker id="ah" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto"><path d="M0,0 L8,4.5 L0,9 z" fill="#666"/></marker><style>text{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}</style></defs>
+<rect width="804" height="1236" fill="#ffffff"/>
+<text x="24" y="30" font-size="20" font-weight="bold" fill="#111">Test framework schema (PostgreSQL) — tf.* only</text>
+<text x="24" y="52" font-size="11.5" fill="#666">Framework-owned tables. Your pipeline&apos;s tables stay with your pipeline — assertions read them, the framework never creates them.</text>
+<text x="24" y="82" font-size="13" font-weight="bold" fill="#555" letter-spacing="2">A · TEST DEFINITIONS</text>
+<text x="440" y="82" font-size="13" font-weight="bold" fill="#555" letter-spacing="2">B · TEST EXECUTION</text>
+<rect x="24" y="96" width="340" height="318" rx="6" fill="#fff" stroke="#d0d7de" stroke-width="1.5"/>
+<rect x="24" y="96" width="340" height="36" rx="6" fill="#1f6feb"/>
+<rect x="24" y="126" width="340" height="6" fill="#1f6feb"/>
+<text x="36" y="119" font-size="14" font-weight="bold" fill="#fff">tf.environments</text>
+<text x="34" y="157" font-size="12" fill="#111">env_id</text>
+<rect x="85.2" y="145" width="28" height="15" rx="7" fill="#1f2328"/>
+<text x="99.2" y="156.5" font-size="9.5" fill="#fff" text-anchor="middle">PK</text>
+<text x="354" y="157" font-size="11" fill="#8a949e" text-anchor="end">TEXT</text>
+<line x1="32" y1="163" x2="356" y2="163" stroke="#eef1f4"/>
+<text x="34" y="181" font-size="12" fill="#111">display_name</text>
+<text x="354" y="181" font-size="11" fill="#8a949e" text-anchor="end">TEXT</text>
+<line x1="32" y1="187" x2="356" y2="187" stroke="#eef1f4"/>
+<text x="34" y="205" font-size="12" fill="#111">pipeline_mode</text>
+<text x="354" y="205" font-size="11" fill="#8a949e" text-anchor="end">TEXT</text>
+<line x1="32" y1="211" x2="356" y2="211" stroke="#eef1f4"/>
+<text x="34" y="229" font-size="12" fill="#111">storage_backend</text>
+<text x="354" y="229" font-size="11" fill="#8a949e" text-anchor="end">TEXT</text>
+<line x1="32" y1="235" x2="356" y2="235" stroke="#eef1f4"/>
+<text x="34" y="253" font-size="12" fill="#111">gcp_project</text>
+<text x="354" y="253" font-size="11" fill="#8a949e" text-anchor="end">TEXT</text>
+<line x1="32" y1="259" x2="356" y2="259" stroke="#eef1f4"/>
+<text x="34" y="277" font-size="12" fill="#111">gcs_bucket</text>
+<text x="354" y="277" font-size="11" fill="#8a949e" text-anchor="end">TEXT</text>
+<line x1="32" y1="283" x2="356" y2="283" stroke="#eef1f4"/>
+<text x="34" y="301" font-size="12" fill="#111">local_bucket_root</text>
+<text x="354" y="301" font-size="11" fill="#8a949e" text-anchor="end">TEXT</text>
+<line x1="32" y1="307" x2="356" y2="307" stroke="#eef1f4"/>
+<text x="34" y="325" font-size="12" fill="#111">dataflow_region</text>
+<text x="354" y="325" font-size="11" fill="#8a949e" text-anchor="end">TEXT</text>
+<line x1="32" y1="331" x2="356" y2="331" stroke="#eef1f4"/>
+<text x="34" y="349" font-size="12" fill="#111">db_dsn_env_var</text>
+<text x="354" y="349" font-size="11" fill="#8a949e" text-anchor="end">TEXT</text>
+<line x1="32" y1="355" x2="356" y2="355" stroke="#eef1f4"/>
+<text x="34" y="373" font-size="12" fill="#111">ingest_adapter</text>
+<text x="354" y="373" font-size="11" fill="#8a949e" text-anchor="end">TEXT</text>
+<line x1="32" y1="379" x2="356" y2="379" stroke="#eef1f4"/>
+<text x="34" y="397" font-size="12" fill="#111">active</text>
+<text x="354" y="397" font-size="11" fill="#8a949e" text-anchor="end">BOOLEAN</text>
+<line x1="32" y1="403" x2="356" y2="403" stroke="#eef1f4"/>
+<rect x="24" y="444" width="340" height="174" rx="6" fill="#fff" stroke="#d0d7de" stroke-width="1.5"/>
+<rect x="24" y="444" width="340" height="36" rx="6" fill="#1f6feb"/>
+<rect x="24" y="474" width="340" height="6" fill="#1f6feb"/>
+<text x="36" y="467" font-size="14" font-weight="bold" fill="#fff">tf.pipelines</text>
+<text x="34" y="505" font-size="12" fill="#111">pipeline_id</text>
+<rect x="121.2" y="493" width="28" height="15" rx="7" fill="#1f2328"/>
+<text x="135.2" y="504.5" font-size="9.5" fill="#fff" text-anchor="middle">PK</text>
+<text x="354" y="505" font-size="11" fill="#8a949e" text-anchor="end">TEXT</text>
+<line x1="32" y1="511" x2="356" y2="511" stroke="#eef1f4"/>
+<text x="34" y="529" font-size="12" fill="#111">display_name</text>
+<text x="354" y="529" font-size="11" fill="#8a949e" text-anchor="end">TEXT</text>
+<line x1="32" y1="535" x2="356" y2="535" stroke="#eef1f4"/>
+<text x="34" y="553" font-size="12" fill="#111">flex_template_gcs_path</text>
+<text x="354" y="553" font-size="11" fill="#8a949e" text-anchor="end">TEXT</text>
+<line x1="32" y1="559" x2="356" y2="559" stroke="#eef1f4"/>
+<text x="34" y="577" font-size="12" fill="#111">pipeline_version</text>
+<text x="354" y="577" font-size="11" fill="#8a949e" text-anchor="end">TEXT</text>
+<line x1="32" y1="583" x2="356" y2="583" stroke="#eef1f4"/>
+<text x="34" y="601" font-size="12" fill="#111">active</text>
+<text x="354" y="601" font-size="11" fill="#8a949e" text-anchor="end">BOOLEAN</text>
+<line x1="32" y1="607" x2="356" y2="607" stroke="#eef1f4"/>
+<rect x="24" y="648" width="340" height="150" rx="6" fill="#fff" stroke="#d0d7de" stroke-width="1.5"/>
+<rect x="24" y="648" width="340" height="36" rx="6" fill="#1f6feb"/>
+<rect x="24" y="678" width="340" height="6" fill="#1f6feb"/>
+<text x="36" y="671" font-size="14" font-weight="bold" fill="#fff">tf.suites</text>
+<text x="34" y="709" font-size="12" fill="#111">suite_id</text>
+<rect x="99.6" y="697" width="28" height="15" rx="7" fill="#1f2328"/>
+<text x="113.6" y="708.5" font-size="9.5" fill="#fff" text-anchor="middle">PK</text>
+<text x="354" y="709" font-size="11" fill="#8a949e" text-anchor="end">TEXT</text>
+<line x1="32" y1="715" x2="356" y2="715" stroke="#eef1f4"/>
+<text x="34" y="733" font-size="12" fill="#111">display_name</text>
+<text x="354" y="733" font-size="11" fill="#8a949e" text-anchor="end">TEXT</text>
+<line x1="32" y1="739" x2="356" y2="739" stroke="#eef1f4"/>
+<text x="34" y="757" font-size="12" fill="#111">test_case_ids</text>
+<text x="354" y="757" font-size="11" fill="#8a949e" text-anchor="end">JSONB</text>
+<line x1="32" y1="763" x2="356" y2="763" stroke="#eef1f4"/>
+<text x="34" y="781" font-size="12" fill="#111">active</text>
+<text x="354" y="781" font-size="11" fill="#8a949e" text-anchor="end">BOOLEAN</text>
+<line x1="32" y1="787" x2="356" y2="787" stroke="#eef1f4"/>
+<rect x="24" y="828" width="340" height="318" rx="6" fill="#fff" stroke="#d0d7de" stroke-width="1.5"/>
+<rect x="24" y="828" width="340" height="36" rx="6" fill="#1f6feb"/>
+<rect x="24" y="858" width="340" height="6" fill="#1f6feb"/>
+<text x="36" y="851" font-size="14" font-weight="bold" fill="#fff">tf.test_cases</text>
+<text x="34" y="889" font-size="12" fill="#111">test_case_id</text>
+<rect x="128.4" y="877" width="28" height="15" rx="7" fill="#1f2328"/>
+<text x="142.4" y="888.5" font-size="9.5" fill="#fff" text-anchor="middle">PK</text>
+<text x="354" y="889" font-size="11" fill="#8a949e" text-anchor="end">TEXT</text>
+<line x1="32" y1="895" x2="356" y2="895" stroke="#eef1f4"/>
+<text x="34" y="913" font-size="12" fill="#111">name</text>
+<text x="354" y="913" font-size="11" fill="#8a949e" text-anchor="end">TEXT</text>
+<line x1="32" y1="919" x2="356" y2="919" stroke="#eef1f4"/>
+<text x="34" y="937" font-size="12" fill="#111">category</text>
+<text x="354" y="937" font-size="11" fill="#8a949e" text-anchor="end">TEXT</text>
+<line x1="32" y1="943" x2="356" y2="943" stroke="#eef1f4"/>
+<text x="34" y="961" font-size="12" fill="#111">description</text>
+<text x="354" y="961" font-size="11" fill="#8a949e" text-anchor="end">TEXT</text>
+<line x1="32" y1="967" x2="356" y2="967" stroke="#eef1f4"/>
+<text x="34" y="985" font-size="12" fill="#111">executions</text>
+<text x="354" y="985" font-size="11" fill="#8a949e" text-anchor="end">INTEGER</text>
+<line x1="32" y1="991" x2="356" y2="991" stroke="#eef1f4"/>
+<text x="34" y="1009" font-size="12" fill="#111">fixture_sequence</text>
+<text x="354" y="1009" font-size="11" fill="#8a949e" text-anchor="end">JSONB</text>
+<line x1="32" y1="1015" x2="356" y2="1015" stroke="#eef1f4"/>
+<text x="34" y="1033" font-size="12" fill="#111">pipeline_id</text>
+<rect x="121.2" y="1021" width="26" height="15" rx="7" fill="#fff" stroke="#1f6feb" stroke-width="1"/>
+<text x="134.2" y="1032.5" font-size="9.5" fill="#1f6feb" text-anchor="middle">FK</text>
+<text x="354" y="1033" font-size="11" fill="#8a949e" text-anchor="end">TEXT</text>
+<line x1="32" y1="1039" x2="356" y2="1039" stroke="#eef1f4"/>
+<text x="34" y="1057" font-size="12" fill="#111">expectations</text>
+<text x="354" y="1057" font-size="11" fill="#8a949e" text-anchor="end">JSONB</text>
+<line x1="32" y1="1063" x2="356" y2="1063" stroke="#eef1f4"/>
+<text x="34" y="1081" font-size="12" fill="#111">batchable</text>
+<text x="354" y="1081" font-size="11" fill="#8a949e" text-anchor="end">BOOLEAN</text>
+<line x1="32" y1="1087" x2="356" y2="1087" stroke="#eef1f4"/>
+<text x="34" y="1105" font-size="12" fill="#111">enabled</text>
+<text x="354" y="1105" font-size="11" fill="#8a949e" text-anchor="end">BOOLEAN</text>
+<line x1="32" y1="1111" x2="356" y2="1111" stroke="#eef1f4"/>
+<text x="34" y="1129" font-size="12" fill="#111">owner</text>
+<text x="354" y="1129" font-size="11" fill="#8a949e" text-anchor="end">TEXT</text>
+<line x1="32" y1="1135" x2="356" y2="1135" stroke="#eef1f4"/>
+<rect x="440" y="96" width="340" height="246" rx="6" fill="#fff" stroke="#d0d7de" stroke-width="1.5"/>
+<rect x="440" y="96" width="340" height="36" rx="6" fill="#1f6feb"/>
+<rect x="440" y="126" width="340" height="6" fill="#1f6feb"/>
+<text x="452" y="119" font-size="14" font-weight="bold" fill="#fff">tf.test_runs</text>
+<text x="450" y="157" font-size="12" fill="#111">run_id</text>
+<rect x="501.2" y="145" width="28" height="15" rx="7" fill="#1f2328"/>
+<text x="515.2" y="156.5" font-size="9.5" fill="#fff" text-anchor="middle">PK</text>
+<text x="770" y="157" font-size="11" fill="#8a949e" text-anchor="end">UUID</text>
+<line x1="448" y1="163" x2="772" y2="163" stroke="#eef1f4"/>
+<text x="450" y="181" font-size="12" fill="#111">env_id</text>
+<rect x="501.2" y="169" width="26" height="15" rx="7" fill="#fff" stroke="#1f6feb" stroke-width="1"/>
+<text x="514.2" y="180.5" font-size="9.5" fill="#1f6feb" text-anchor="middle">FK</text>
+<text x="770" y="181" font-size="11" fill="#8a949e" text-anchor="end">TEXT</text>
+<line x1="448" y1="187" x2="772" y2="187" stroke="#eef1f4"/>
+<text x="450" y="205" font-size="12" fill="#111">suite</text>
+<text x="770" y="205" font-size="11" fill="#8a949e" text-anchor="end">TEXT</text>
+<line x1="448" y1="211" x2="772" y2="211" stroke="#eef1f4"/>
+<text x="450" y="229" font-size="12" fill="#111">status</text>
+<text x="770" y="229" font-size="11" fill="#8a949e" text-anchor="end">TEXT</text>
+<line x1="448" y1="235" x2="772" y2="235" stroke="#eef1f4"/>
+<text x="450" y="253" font-size="12" fill="#111">triggered_by</text>
+<text x="770" y="253" font-size="11" fill="#8a949e" text-anchor="end">TEXT</text>
+<line x1="448" y1="259" x2="772" y2="259" stroke="#eef1f4"/>
+<text x="450" y="277" font-size="12" fill="#111">started_at</text>
+<text x="770" y="277" font-size="11" fill="#8a949e" text-anchor="end">TIMESTAMPTZ</text>
+<line x1="448" y1="283" x2="772" y2="283" stroke="#eef1f4"/>
+<text x="450" y="301" font-size="12" fill="#111">finished_at</text>
+<text x="770" y="301" font-size="11" fill="#8a949e" text-anchor="end">TIMESTAMPTZ</text>
+<line x1="448" y1="307" x2="772" y2="307" stroke="#eef1f4"/>
+<text x="450" y="325" font-size="12" fill="#111">summary</text>
+<text x="770" y="325" font-size="11" fill="#8a949e" text-anchor="end">JSONB</text>
+<line x1="448" y1="331" x2="772" y2="331" stroke="#eef1f4"/>
+<rect x="440" y="372" width="340" height="294" rx="6" fill="#fff" stroke="#d0d7de" stroke-width="1.5"/>
+<rect x="440" y="372" width="340" height="36" rx="6" fill="#1f6feb"/>
+<rect x="440" y="402" width="340" height="6" fill="#1f6feb"/>
+<text x="452" y="395" font-size="14" font-weight="bold" fill="#fff">tf.test_case_results</text>
+<text x="450" y="433" font-size="12" fill="#111">run_id</text>
+<rect x="501.2" y="421" width="26" height="15" rx="7" fill="#fff" stroke="#1f6feb" stroke-width="1"/>
+<text x="514.2" y="432.5" font-size="9.5" fill="#1f6feb" text-anchor="middle">FK</text>
+<text x="770" y="433" font-size="11" fill="#8a949e" text-anchor="end">UUID</text>
+<line x1="448" y1="439" x2="772" y2="439" stroke="#eef1f4"/>
+<text x="450" y="457" font-size="12" fill="#111">test_case_id</text>
+<rect x="544.4" y="445" width="26" height="15" rx="7" fill="#fff" stroke="#1f6feb" stroke-width="1"/>
+<text x="557.4" y="456.5" font-size="9.5" fill="#1f6feb" text-anchor="middle">FK</text>
+<text x="770" y="457" font-size="11" fill="#8a949e" text-anchor="end">TEXT</text>
+<line x1="448" y1="463" x2="772" y2="463" stroke="#eef1f4"/>
+<text x="450" y="481" font-size="12" fill="#111">execution_no</text>
+<text x="770" y="481" font-size="11" fill="#8a949e" text-anchor="end">INTEGER</text>
+<line x1="448" y1="487" x2="772" y2="487" stroke="#eef1f4"/>
+<text x="450" y="505" font-size="12" fill="#111">status</text>
+<text x="770" y="505" font-size="11" fill="#8a949e" text-anchor="end">TEXT</text>
+<line x1="448" y1="511" x2="772" y2="511" stroke="#eef1f4"/>
+<text x="450" y="529" font-size="12" fill="#111">gcs_uris</text>
+<text x="770" y="529" font-size="11" fill="#8a949e" text-anchor="end">JSONB</text>
+<line x1="448" y1="535" x2="772" y2="535" stroke="#eef1f4"/>
+<text x="450" y="553" font-size="12" fill="#111">file_ids</text>
+<text x="770" y="553" font-size="11" fill="#8a949e" text-anchor="end">JSONB</text>
+<line x1="448" y1="559" x2="772" y2="559" stroke="#eef1f4"/>
+<text x="450" y="577" font-size="12" fill="#111">load_statuses</text>
+<text x="770" y="577" font-size="11" fill="#8a949e" text-anchor="end">JSONB</text>
+<line x1="448" y1="583" x2="772" y2="583" stroke="#eef1f4"/>
+<text x="450" y="601" font-size="12" fill="#111">started_at</text>
+<text x="770" y="601" font-size="11" fill="#8a949e" text-anchor="end">TIMESTAMPTZ</text>
+<line x1="448" y1="607" x2="772" y2="607" stroke="#eef1f4"/>
+<text x="450" y="625" font-size="12" fill="#111">finished_at</text>
+<text x="770" y="625" font-size="11" fill="#8a949e" text-anchor="end">TIMESTAMPTZ</text>
+<line x1="448" y1="631" x2="772" y2="631" stroke="#eef1f4"/>
+<text x="450" y="649" font-size="12" fill="#111">details</text>
+<text x="770" y="649" font-size="11" fill="#8a949e" text-anchor="end">JSONB</text>
+<line x1="448" y1="655" x2="772" y2="655" stroke="#eef1f4"/>
+<rect x="440" y="696" width="340" height="318" rx="6" fill="#fff" stroke="#d0d7de" stroke-width="1.5"/>
+<rect x="440" y="696" width="340" height="36" rx="6" fill="#1f6feb"/>
+<rect x="440" y="726" width="340" height="6" fill="#1f6feb"/>
+<text x="452" y="719" font-size="14" font-weight="bold" fill="#fff">tf.assertion_results</text>
+<text x="450" y="757" font-size="12" fill="#111">assertion_id</text>
+<rect x="544.4" y="745" width="28" height="15" rx="7" fill="#1f2328"/>
+<text x="558.4" y="756.5" font-size="9.5" fill="#fff" text-anchor="middle">PK</text>
+<text x="770" y="757" font-size="11" fill="#8a949e" text-anchor="end">BIGSERIAL</text>
+<line x1="448" y1="763" x2="772" y2="763" stroke="#eef1f4"/>
+<text x="450" y="781" font-size="12" fill="#111">run_id</text>
+<text x="770" y="781" font-size="11" fill="#8a949e" text-anchor="end">UUID</text>
+<line x1="448" y1="787" x2="772" y2="787" stroke="#eef1f4"/>
+<text x="450" y="805" font-size="12" fill="#111">test_case_id</text>
+<text x="770" y="805" font-size="11" fill="#8a949e" text-anchor="end">TEXT</text>
+<line x1="448" y1="811" x2="772" y2="811" stroke="#eef1f4"/>
+<text x="450" y="829" font-size="12" fill="#111">execution_no</text>
+<text x="770" y="829" font-size="11" fill="#8a949e" text-anchor="end">INTEGER</text>
+<line x1="448" y1="835" x2="772" y2="835" stroke="#eef1f4"/>
+<text x="450" y="853" font-size="12" fill="#111">name</text>
+<text x="770" y="853" font-size="11" fill="#8a949e" text-anchor="end">TEXT</text>
+<line x1="448" y1="859" x2="772" y2="859" stroke="#eef1f4"/>
+<text x="450" y="877" font-size="12" fill="#111">kind</text>
+<text x="770" y="877" font-size="11" fill="#8a949e" text-anchor="end">TEXT</text>
+<line x1="448" y1="883" x2="772" y2="883" stroke="#eef1f4"/>
+<text x="450" y="901" font-size="12" fill="#111">status</text>
+<text x="770" y="901" font-size="11" fill="#8a949e" text-anchor="end">TEXT</text>
+<line x1="448" y1="907" x2="772" y2="907" stroke="#eef1f4"/>
+<text x="450" y="925" font-size="12" fill="#111">expected</text>
+<text x="770" y="925" font-size="11" fill="#8a949e" text-anchor="end">JSONB</text>
+<line x1="448" y1="931" x2="772" y2="931" stroke="#eef1f4"/>
+<text x="450" y="949" font-size="12" fill="#111">actual</text>
+<text x="770" y="949" font-size="11" fill="#8a949e" text-anchor="end">JSONB</text>
+<line x1="448" y1="955" x2="772" y2="955" stroke="#eef1f4"/>
+<text x="450" y="973" font-size="12" fill="#111">message</text>
+<text x="770" y="973" font-size="11" fill="#8a949e" text-anchor="end">TEXT</text>
+<line x1="448" y1="979" x2="772" y2="979" stroke="#eef1f4"/>
+<text x="450" y="997" font-size="12" fill="#111">checked_at</text>
+<text x="770" y="997" font-size="11" fill="#8a949e" text-anchor="end">TIMESTAMPTZ</text>
+<line x1="448" y1="1003" x2="772" y2="1003" stroke="#eef1f4"/>
+<path d="M364,1029 L420,1029 L420,462 L364,462" fill="none" stroke="#888" stroke-width="1.2" marker-end="url(#ah)"/>
+<path d="M440,177 L402,177 L402,114 L364,114" fill="none" stroke="#888" stroke-width="1.2" marker-end="url(#ah)"/>
+<path d="M440,429 L384,429 L384,114 L440,114" fill="none" stroke="#888" stroke-width="1.2" marker-end="url(#ah)"/>
+<path d="M440,453 L402,453 L402,846 L364,846" fill="none" stroke="#888" stroke-width="1.2" marker-end="url(#ah)"/>
+<text x="24" y="1212" font-size="11.5" fill="#666">Plug-in: tf.environments.ingest_adapter → your ingest function.</text>
 </svg>

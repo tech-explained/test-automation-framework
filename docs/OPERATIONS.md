@@ -5,16 +5,16 @@
 Prerequisites: Python 3.12+, PostgreSQL 16, `psql`, `pytest`, `psycopg`.
 
 ```bash
-export HR_PG_DSN="postgresql://hatch:hatch@127.0.0.1/hrdemo"
+export HR_PG_DSN="postgresql://user:pass@host/dbname"
 bash scripts/migrate.sh          # framework tf.* tables (idempotent)
-bash examples/reference_pipeline/db/apply.sh  # example schema + seeds + cases
 python3 -m pytest tests/unit -q
-python3 -m test_framework.runner --env local --suite regression
 ```
 
-The seeded `local` environment runs the framework against the example
-adapter (`examples.reference_adapter:ingest_file`), so everything works
-offline with no GCP.
+Then register your environment (see below) and run:
+
+```bash
+python3 -m test_framework.runner --env local --suite regression
+```
 
 ## Framework-only deployment (pipeline developed separately)
 
@@ -38,17 +38,17 @@ def ingest_file(uri, *, file_name, as_of_date, env, actor) -> dict:
     """
 ```
 
-Start from `examples/reference_adapter.py` — it implements this contract
-against the example pipeline (trigger → block until done → return identity).
+Start from `examples/adapter_template.py` — it documents the contract with
+a Dataflow Flex Template skeleton (trigger → block until done → return
+identity).
 
 Assertion SQL is yours too: each test case's `expectations` is arbitrary SQL
-against your database. The 23 seeded cases target the example schema
-(`bronze.*`, `silver.*`, `ops.*`); keep them if your pipeline writes those
-tables, otherwise author cases with `add_case.py` against your own tables.
-The four assertion kinds (`sql_scalar`, `sql_row`, `file_bytes`,
-`file_rows`) are pipeline-agnostic except `file_rows`, which verifies the
-framework's bronze contract (sha256-of-raw-line row identity, `Worker_ID`
-natural key — see `test_framework/lineparse.py`).
+against your database. Sample cases in `examples/sample_seeds/` show the
+shape — rewrite the SQL for your own tables, then author cases with
+`add_case.py`. The four assertion kinds (`sql_scalar`, `sql_row`,
+`file_bytes`, `file_rows`) are pipeline-agnostic except `file_rows`, which
+verifies the framework's bronze contract (sha256-of-raw-line row identity,
+`Worker_ID` natural key — see `test_framework/lineparse.py`).
 
 ### 1. Database
 
@@ -61,9 +61,8 @@ export HR_PG_DSN="postgresql://user:pass@10.x.x.x/hrprod"
 bash scripts/migrate.sh   # tf.* schema only; idempotent
 ```
 
-Only the `tf.*` tables are required. `bronze.*` / `silver.*` / `ops.*` /
-`gold.*` migrations are the example pipeline's schema — apply them only if
-your pipeline adopts that contract.
+Only the `tf.*` tables are required. Your pipeline's schema lives with
+your pipeline — the framework never creates it.
 
 ### 2. Fixture bucket
 
@@ -167,7 +166,7 @@ lives only in Secret Manager (bootstrap rotates it).
 
 ### Triggering on demand or on schedule (Cloud Composer)
 
-`deploy/composer/dags/hr_qa_tests.py` is a ready-to-upload DAG that executes
+`deploy/composer/dags/qa_tests.py` is a ready-to-upload DAG that executes
 the `hr-qa-runner` Cloud Run Job via `CloudRunExecuteJobOperator` and waits
 for it: `qa_smoke` → `qa_regression` (regression only if smoke is green).
 `SCHEDULE` defaults to `None` (on-demand: trigger from the Airflow UI or
@@ -177,7 +176,7 @@ for it: `qa_smoke` → `qa_regression` (regression only if smoke is green).
 
 ## Monitoring
 
-- `tf.test_runs` / `tf.case_results` / `tf.assertion_results`: every run's
+- `tf.test_runs` / `tf.test_case_results` / `tf.assertion_results`: every run's
   pass/fail tree. `test_runs.summary` carries case totals, `ingest_mode`,
   and the batch plan (groups, launches) for batch-mode runs.
 - `test_framework/reports/<run_id>.md`: the human-readable report per run.

@@ -5,9 +5,6 @@ empty `tf.*` tables — you bring your own pipeline, register an environment
 row pointing at your adapter, and author test cases with
 `test_framework/add_case.py`.
 
-Sample seed data lives with the reference example:
-
-- `examples/reference_pipeline/db/seeds/` — environments (local → example
-  adapter), the reference pipeline row, suites, and the 23-case HR QA
-  matrix. Applied by `examples/reference_pipeline/db/apply.sh` after the
-  framework migrations.
+Sample seed data lives in `examples/sample_seeds/`: example
+environments, a sample pipeline row, suites, and illustrative test cases.
+Adapt them to your own pipeline's tables before using.

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Applies the framework migrations (tf.* tables only). Requires HR_PG_DSN.
 # The framework ships with no seed data; sample seeds live with the
-# reference example (examples/reference_pipeline/db/).
+# sample seeds (examples/sample_seeds/).
 set -euo pipefail
 : "${HR_PG_DSN:?HR_PG_DSN must be set}"
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"

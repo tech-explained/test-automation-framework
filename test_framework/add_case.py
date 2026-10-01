@@ -12,18 +12,18 @@ With --apply it upserts tf.test_cases and appends the case to the suites.
 Spec format:
 {
   "test_case_id": "TC-021",
-  "name": "SCD4: promotion changes title and salary",
+  "name": "Promotion changes title and salary",
   "category": "scd4",
   "description": "...",
   "executions": 1,
-  "pipeline_id": "hr-workday-ndjson-v1",
+  "pipeline_id": "my-pipeline-v1",
   "fixture_sequence": [
     {"generator": "initial_load", "params": {"n": 5}, "as_of_date": "2026-09-29"},
     {"generator": "promotion", "params": {"n": 5, "target_index": 0}, "as_of_date": "2026-09-30"}
   ],
   "assertions": [
     {"name": "version_2", "kind": "sql_scalar",
-     "sql": "SELECT version FROM silver.workers_current WHERE worker_id = {target_worker}",
+     "sql": "SELECT version FROM myapp.workers_current WHERE worker_id = {target_worker}",
      "op": "eq", "expected": 2}
   ],
   "suites": ["regression", "scd4"]
@@ -166,7 +166,7 @@ def apply(spec: dict) -> None:
             (tc, spec["name"], spec["category"], spec["description"],
              int(spec.get("executions", 1)),
              Jsonb(spec["fixture_sequence"]),
-             spec.get("pipeline_id", "hr-workday-ndjson-v1"),
+             spec.get("pipeline_id"),
              Jsonb({"assertions": spec["assertions"]}), batchable),
         )
         for suite in spec.get("suites", []):

@@ -1,18 +1,18 @@
 # Triggering the QA framework from Cloud Composer
 
-`dags/hr_qa_tests.py` runs the framework's suites inside GCP by executing
+`dags/qa_tests.py` runs the framework's suites inside GCP by executing
 the `hr-qa-runner` Cloud Run Job and waiting for it to finish.
 
 ## Setup
 
 1. Deploy the runner first: `deploy/runner/deploy.sh` (the job must exist).
-2. Set your project in `dags/hr_qa_tests.py` (`PROJECT = ...`).
+2. Set your project in `dags/qa_tests.py` (`PROJECT = ...`).
 3. Upload the DAG to your Composer environment:
 
 ```bash
 gcloud composer environments storage dags import \
   --environment <env-name> --location <region> \
-  --source deploy/composer/dags/hr_qa_tests.py
+  --source deploy/composer/dags/qa_tests.py
 ```
 
 4. Grant the Composer environment's service account permission to execute

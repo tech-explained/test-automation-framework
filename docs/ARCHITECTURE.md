@@ -15,12 +15,10 @@ def ingest_file(uri, *, file_name, as_of_date, env, actor) -> dict:
 
 `test_framework/pipeline_adapter.py` is the only place the framework
 resolves and calls the adapter. `tf.environments.pipeline_mode` is
-constrained to `'external'` (migration `010`); there are no built-in
-local/Dataflow modes anymore. The seeded `local` environment uses the
-example adapter (`examples.reference_adapter:ingest_file`), so a fresh
-checkout runs end-to-end offline. The seeded `gcp` environment row is a
-template: point `ingest_adapter` at your own adapter (Dataflow, Spark,
-dbt, ...).
+constrained to `'external'`; there are no built-in pipeline modes. You
+register an environment row pointing `ingest_adapter` at your own adapter
+(Dataflow, Spark, dbt, ...) — see `docs/OPERATIONS.md` and the contract
+template in `examples/adapter_template.py`.
 
 ## Metadata model (`tf.*`)
 
@@ -36,9 +34,9 @@ QA is data, not configuration. Everything lives in PostgreSQL:
 - `tf.test_runs` — one row per run: env, suite, status, started/finished,
   `summary` JSONB (case totals, `ingest_mode`, and the batch plan when in
   batch mode).
-- `tf.case_results` / `tf.executions` / `tf.assertion_results` — the full
-  per-run result tree, including generated fixture bytes' SHA-256 and the
-  adapter's returned `file_id` per execution.
+- `tf.test_case_results` / `tf.assertion_results` — the full per-run result
+  tree, including generated fixture bytes' SHA-256 and the adapter's
+  returned `file_id` per execution.
 
 A run is fully reproducible from the database alone; the Markdown report is
 a query, not a log scrape.
@@ -77,8 +75,7 @@ never interpolated (`{prefix}`, `{file_id}`, `{file_id_0…N}`,
 `--ingest-mode per-file` (default) calls the adapter once per fixture file.
 `--ingest-mode batch` merges batch-eligible cases' fixture files by
 `as_of_date` into one NDJSON per date and calls the adapter once per group;
-solo cases still ingest individually. The latest regression: 34 launches →
-15, all 23 cases green.
+solo cases still ingest individually.
 
 `test_framework/batching.py`:
 
@@ -87,8 +84,7 @@ solo cases still ingest individually. The latest regression: 34 launches →
   uses a poison generator (`with_malformed`, `all_invalid`,
   `invalid_dates`, `missing_worker_id`, `empty`), or its generated files
   are byte-identical (a replay/dedup test), or its assertions assume
-  file-level isolation (e.g. TC-023's file-vs-silver reconciliation).
-  Currently 13 batchable / 10 solo of 23 seeded cases.
+  file-level isolation (e.g. a file-vs-table reconciliation case).
 - **Grouping** (`plan_batch_groups`): files grouped by `as_of_date` (the
   pipeline stamps one as-of per load; merging across dates would corrupt
   date semantics). Merged content is exactly the concatenation of member
@@ -109,10 +105,8 @@ against the same database.
 
 ## What the examples are
 
-`examples/` is not part of the framework. `examples/reference_pipeline/`
-is a minimal HR pipeline (Workday RaaS NDJSON → GCS → Dataflow/Beam →
-PostgreSQL bronze/silver/gold with SCD Type 4 and content-addressed
-idempotency) that the framework was originally built against; it now lives
-here purely as a working example. `examples/reference_adapter.py`
-implements the ingest contract against it and is the recommended starting
-point for writing your own adapter.
+`examples/` is not part of the framework. It holds `adapter_template.py`
+(the documented ingest contract — the starting point for writing your own
+adapter) and `sample_seeds/` (example `tf.*` seed data: environments,
+suites, and illustrative test cases whose SQL you adapt to your own
+pipeline's tables).

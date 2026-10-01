@@ -1,1 +1,60 @@
-{"assertions":[{"expected":2,"kind":"sql_scalar","name":"version_2","op":"eq","sql":"SELECT version FROM silver.workers_current WHERE worker_id = {target_worker}"},{"expected":"Austin, TX","kind":"sql_scalar","name":"new_location","op":"eq","sql":"SELECT location FROM silver.workers_current WHERE worker_id = {target_worker}"},{"expected":1,"kind":"sql_scalar","name":"one_history_row","op":"eq","sql":"SELECT COUNT(*) FROM silver.workers_history WHERE worker_id = {target_worker}"},{"expected":"Dallas, TX","kind":"sql_scalar","name":"history_keeps_old_location","op":"eq","sql":"SELECT location FROM silver.workers_history WHERE worker_id = {target_worker} AND version = 1"}],"category":"scd4","description":"Location change versions the worker; the old location is retained in history.","executions":1,"fixture_sequence":[{"as_of_date":"2026-09-29","generator":"initial_load","params":{"n":5}},{"as_of_date":"2026-09-30","generator":"location_change","params":{"n":5,"new_location":"Austin, TX","target_index":3}}],"name":"SCD4: location change versions the worker","pipeline_id":"hr-workday-ndjson-v1","suites":["regression","scd4"],"test_case_id":"TC-022"}
+{
+ "assertions": [
+  {
+   "expected": 2,
+   "kind": "sql_scalar",
+   "name": "version_2",
+   "op": "eq",
+   "sql": "SELECT version FROM myapp.workers_current WHERE worker_id = {target_worker}"
+  },
+  {
+   "expected": "Austin, TX",
+   "kind": "sql_scalar",
+   "name": "new_location",
+   "op": "eq",
+   "sql": "SELECT location FROM myapp.workers_current WHERE worker_id = {target_worker}"
+  },
+  {
+   "expected": 1,
+   "kind": "sql_scalar",
+   "name": "one_history_row",
+   "op": "eq",
+   "sql": "SELECT COUNT(*) FROM myapp.workers_history WHERE worker_id = {target_worker}"
+  },
+  {
+   "expected": "Dallas, TX",
+   "kind": "sql_scalar",
+   "name": "history_keeps_old_location",
+   "op": "eq",
+   "sql": "SELECT location FROM myapp.workers_history WHERE worker_id = {target_worker} AND version = 1"
+  }
+ ],
+ "category": "scd4",
+ "description": "Location change versions the worker; the old location is retained in history.",
+ "executions": 1,
+ "fixture_sequence": [
+  {
+   "as_of_date": "2026-09-29",
+   "generator": "initial_load",
+   "params": {
+    "n": 5
+   }
+  },
+  {
+   "as_of_date": "2026-09-30",
+   "generator": "location_change",
+   "params": {
+    "n": 5,
+    "new_location": "Austin, TX",
+    "target_index": 3
+   }
+  }
+ ],
+ "name": "SCD4: location change versions the worker",
+ "pipeline_id": "sample-pipeline-v1",
+ "suites": [
+  "regression",
+  "scd4"
+ ],
+ "test_case_id": "TC-022"
+}

@@ -12,21 +12,17 @@ a log scrape.
 
 | Layer | Where | What it proves |
 |---|---|---|
-| Unit | `tests/unit` (pytest, 46 tests) | Line parsing + row identity, fixture determinism + contracts, assertion substitution/comparison, batch eligibility + grouping, adapter loading (dotted-path resolution, external-only mode). No pipeline core — that lives in `examples/` |
+| Unit | `tests/unit` (pytest) | Line parsing + row identity, fixture determinism + contracts, assertion substitution/comparison, batch eligibility + grouping, adapter loading (dotted-path resolution, external-only mode) |
 | E2E (framework) | `test_framework/runner.py` + `tf.*` | Full file → storage → adapter → database validation per test case |
 
 ## Suites
 
-- **smoke** (TC-001, TC-002, TC-003, TC-007): happy path, replay idempotency,
-  one SCD4 change, malformed JSON. Gate for every change.
-- **scd4** (TC-003–TC-006, TC-009, TC-016–TC-018, TC-021, TC-022): versioning,
-  termination, new hires, stale files, rehire chains, point-in-time gold,
-  promotion, location change.
-- **idempotency** (TC-002, TC-004, TC-016): byte-identical replay,
-  reordered-file (same business data, new bytes), stale-file handling.
-- **negative** (TC-007, TC-008, TC-011, TC-014, TC-015): malformed JSON,
-  missing Worker_ID, invalid dates, empty file, all-invalid file.
-- **regression**: all 23 cases.
+Suites are defined in `tf.suites` and group test cases by purpose. The
+sample seeds (`examples/sample_seeds/`) define illustrative suites:
+
+- **smoke**: happy path, replay idempotency, one versioning change,
+  malformed input. Gate for every change.
+- **regression**: the full sample case matrix.
 
 ## Running
 
@@ -40,45 +36,50 @@ python3 -m test_framework.runner --env local --suite regression --ingest-mode ba
 ```
 
 `--ingest-mode batch` merges batch-eligible cases by `as_of_date` and calls
-the adapter once per group; solo cases still ingest individually. Latest
-regression: 23/23 passed in both modes; batch mode cut adapter launches
-from 34 to 13. `--dry-run --ingest-mode batch` prints the batch plan
+the adapter once per group; solo cases still ingest individually.
+`--dry-run --ingest-mode batch` prints the batch plan
 (groups, launch count, and which cases go BATCH vs SOLO) without running.
 
-## The 23 cases
+## Sample test cases
 
-`(solo)` marks the 10 cases that stay per-file in batch mode; the other 13
-are batchable.
+`examples/sample_seeds/` ships illustrative test cases (TC-001..TC-023)
+showing the framework's patterns: functional loads, idempotency replays,
+versioning/SCD scenarios, negative inputs (malformed, missing keys, invalid
+dates, empty files), edge cases (duplicates, unicode, long text, schema
+drift), and audit/reconciliation checks.
+
+`(solo)` marks cases that stay per-file in batch mode; the others are
+batchable. Adapt every case's SQL to your own pipeline's tables — the
+sample SQL references illustrative table names.
 
 | ID | Category | Scenario | Batch |
 |---|---|---|---|
-| TC-001 | functional | Initial load of 5 workers: counts, lineage, ingestion status | batch |
-| TC-002 | idempotency | Byte-identical file replayed → `skipped_duplicate`, one ingestion row, audit trail | solo |
-| TC-003 | scd4 | Department change → version 2, 1 history row keeps old dept, `valid_to` set | solo |
+| TC-001 | functional | Initial load: row counts, lineage, ingestion status | batch |
+| TC-002 | idempotency | Byte-identical replay → `skipped_duplicate`, single ingestion record | solo |
+| TC-003 | scd4 | Attribute change → new version, history row keeps old value | solo |
 | TC-004 | idempotency | Same business data, reordered lines (new bytes) → no new versions | batch |
 | TC-005 | scd4 | Termination → versioned, never deleted | batch |
 | TC-006 | scd4 | New hires insert; existing versions untouched | batch |
 | TC-007 | negative | Malformed JSON lines quarantined; valid rows load | solo |
 | TC-008 | negative | Row without Worker_ID rejected | solo |
 | TC-009 | edge | Duplicate Worker_ID in one file → last line wins, counted | batch |
-| TC-010 | edge | Unknown RaaS fields land in `attributes` (schema drift) | batch |
+| TC-010 | edge | Unknown input fields preserved (schema drift) | batch |
 | TC-011 | negative | Unparseable dates → NULL, row still loads | solo |
 | TC-012 | edge | Unicode names survive byte-for-byte | batch |
 | TC-013 | edge | 5,000-char text not truncated | batch |
 | TC-014 | negative | Empty file completes cleanly with DQ warning | solo |
 | TC-015 | negative | All-invalid file → completed with zero staged workers | solo |
-| TC-016 | scd4 | Stale (out-of-order) file never regresses silver | solo |
+| TC-016 | scd4 | Stale (out-of-order) file never regresses current state | solo |
 | TC-017 | scd4 | Terminate → rehire → version 3, 2 history rows | batch |
-| TC-018 | scd4 | Gold history view reconstructs past department | batch |
-| TC-019 | audit | Lineage: silver → bronze file/line; pipeline run linked; audit covers started/completed | batch |
+| TC-018 | scd4 | History view reconstructs past attribute values | batch |
+| TC-019 | audit | Lineage: curated row → source file/line; audit covers started/completed | batch |
 | TC-020 | dq | 60% null emails → advisory warning, load not blocked | solo |
 | TC-021 | scd4 | Promotion: title + salary change versions the worker; old title kept in history | batch |
 | TC-022 | scd4 | Location change versions the worker; old location kept in history | batch |
-| TC-023 | audit | Reconciliation: file content matches silver column-for-column, zero drift | solo |
+| TC-023 | audit | Reconciliation: file content matches curated table, zero drift | solo |
 
-The seeded cases target the example pipeline's schema (`bronze.*`,
-`silver.*`, `ops.*`); for your own pipeline, author cases against your own
-tables with the same four assertion kinds.
+The sample cases target illustrative table names; for your own pipeline,
+author cases against your own tables with the same four assertion kinds.
 
 ## Batch mode
 
@@ -142,8 +143,7 @@ of `sql`:
 
 ## Environments
 
-- **local**: local "bucket" dir + the example adapter
-  (`examples.reference_adapter:ingest_file`). No GCP. Used for all
+- **local**: local "bucket" dir + your adapter. No GCP. Used for
   development and CI.
 - **gcp**: real GCS bucket + your pipeline via your adapter
   (`tf.environments.ingest_adapter = 'mycompany.qa_adapter:ingest_file'`,

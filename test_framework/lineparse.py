@@ -12,8 +12,7 @@ If the pipeline under test uses different bronze identity semantics, write
 assertions with the ``sql_scalar`` / ``sql_row`` kinds against its own
 tables instead of ``file_rows``.
 
-Canonical home: ``examples/reference_pipeline/core.py`` mirrors these names so
-the reference pipeline and the framework share one implementation.
+This is the framework's canonical definition of raw-line identity.
 """
 
 from __future__ import annotations

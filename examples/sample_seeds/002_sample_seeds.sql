@@ -1,4 +1,5 @@
--- 002_reference_seeds.sql
+-- 002_sample_seeds.sql
+-- SAMPLE seed data (continued): more example test cases + suites.
 
 -- ============================ TC-009 =====================================
 INSERT INTO tf.test_cases
@@ -8,7 +9,7 @@ VALUES ('TC-009', 'Edge: duplicate worker rows inside one file (last wins)', 'ed
  'Worker W0000 appears twice with different departments. Both raw lines stay in bronze; the merge dedupes keeping the LAST line; one current row, zero history, audit notes the duplicate.',
  1,
  '[{"generator": "duplicate_rows", "params": {"n": 5, "dup_index": 0, "dup_department": "Moonshot Lab"}, "as_of_date": "2026-09-29"}]',
- 'hr-workday-ndjson-v1',
+ 'sample-pipeline-v1',
  '{"assertions": [
    {"name": "bronze_keeps_both_lines", "kind": "sql_scalar",
     "sql": "SELECT COUNT(*) FROM bronze.raw_worker_events WHERE file_id = {file_id}::uuid AND worker_json ->> ''Worker_ID'' LIKE {prefix} || ''-W%''",
@@ -45,7 +46,7 @@ VALUES ('TC-010', 'Edge: unknown RaaS fields land in attributes (schema drift sa
  'Workers carry fields the silver schema never heard of (Favorite_Snack, Nickname). Load succeeds and the extras are preserved verbatim in attributes.',
  1,
  '[{"generator": "extra_fields", "params": {"n": 5}, "as_of_date": "2026-09-29"}]',
- 'hr-workday-ndjson-v1',
+ 'sample-pipeline-v1',
  '{"assertions": [
    {"name": "silver_5", "kind": "sql_scalar",
     "sql": "SELECT COUNT(*) FROM silver.workers_current WHERE worker_id LIKE {prefix} || ''-W%''",
@@ -73,7 +74,7 @@ VALUES ('TC-011', 'Negative: unparseable dates become NULL, row still loads', 'n
  'Two workers have Hire_Date = ''not-a-date''. The safe parser nulls the field instead of failing the batch; a DQ warning is recorded.',
  1,
  '[{"generator": "invalid_dates", "params": {"n": 5}, "as_of_date": "2026-09-29"}]',
- 'hr-workday-ndjson-v1',
+ 'sample-pipeline-v1',
  '{"assertions": [
    {"name": "all_rows_load", "kind": "sql_scalar",
     "sql": "SELECT COUNT(*) FROM silver.workers_current WHERE worker_id LIKE {prefix} || ''-W%''",
@@ -101,7 +102,7 @@ VALUES ('TC-012', 'Edge: unicode names survive byte-for-byte', 'edge',
  'Names with diacritics and CJK characters must round-trip through bronze JSONB and silver text columns exactly.',
  1,
  '[{"generator": "unicode_names", "params": {"n": 3}, "as_of_date": "2026-09-29"}]',
- 'hr-workday-ndjson-v1',
+ 'sample-pipeline-v1',
  '{"assertions": [
    {"name": "cjk_name_exact", "kind": "sql_scalar",
     "sql": "SELECT preferred_name FROM silver.workers_current WHERE worker_id = {prefix} || ''-W0001''",
@@ -129,7 +130,7 @@ VALUES ('TC-013', 'Edge: very long text values are not truncated', 'edge',
  'A 5000-character free-text field rides in attributes (JSONB). No silent truncation anywhere in the path.',
  1,
  '[{"generator": "long_text", "params": {"n": 5, "length": 5000}, "as_of_date": "2026-09-29"}]',
- 'hr-workday-ndjson-v1',
+ 'sample-pipeline-v1',
  '{"assertions": [
    {"name": "long_text_preserved", "kind": "sql_scalar",
     "sql": "SELECT LENGTH(attributes->>''Bio'') FROM silver.workers_current WHERE worker_id = {prefix} || ''-W0002''",
@@ -154,7 +155,7 @@ VALUES ('TC-014', 'Edge: empty file completes cleanly', 'negative',
  'A zero-line file is a valid no-op: ingestion completes, nothing lands in silver, DQ notes the empty file.',
  1,
  '[{"generator": "empty", "params": {}, "as_of_date": "2026-09-29"}]',
- 'hr-workday-ndjson-v1',
+ 'sample-pipeline-v1',
  '{"assertions": [
    {"name": "ingestion_completed", "kind": "sql_scalar",
     "sql": "SELECT status FROM ops.file_ingestions WHERE file_id = {file_id}::uuid",
@@ -185,7 +186,7 @@ VALUES ('TC-015', 'Negative: file with only invalid lines', 'negative',
  'Every line is corrupt. The run still completes (nothing to merge is not a failure); all lines are quarantined; silver is untouched.',
  1,
  '[{"generator": "all_invalid", "params": {"count": 3}, "as_of_date": "2026-09-29"}]',
- 'hr-workday-ndjson-v1',
+ 'sample-pipeline-v1',
  '{"assertions": [
    {"name": "ingestion_completed", "kind": "sql_scalar",
     "sql": "SELECT status FROM ops.file_ingestions WHERE file_id = {file_id}::uuid",
@@ -220,7 +221,7 @@ VALUES ('TC-016', 'SCD4: stale (out-of-order) file never regresses silver', 'scd
  1,
  '[{"generator": "initial_load", "params": {"n": 5}, "as_of_date": "2026-09-29"},
     {"generator": "dept_change", "params": {"n": 5, "target_index": 2, "new_department": "People Operations"}, "as_of_date": "2026-09-20"}]',
- 'hr-workday-ndjson-v1',
+ 'sample-pipeline-v1',
  '{"assertions": [
    {"name": "both_files_in_bronze", "kind": "sql_scalar",
     "sql": "SELECT COUNT(*) FROM bronze.raw_worker_events WHERE file_id IN ({file_id_0}::uuid, {file_id_1}::uuid)",
@@ -256,7 +257,7 @@ VALUES ('TC-017', 'SCD4: terminate then rehire produces version 3 with 2 history
  '[{"generator": "initial_load", "params": {"n": 5}, "as_of_date": "2026-09-29"},
     {"generator": "terminate", "params": {"n": 5, "target_index": 1, "termination_date": "2026-09-28"}, "as_of_date": "2026-09-30"},
     {"generator": "rehire", "params": {"n": 5, "target_index": 1, "new_hire_date": "2026-10-01"}, "as_of_date": "2026-10-01"}]',
- 'hr-workday-ndjson-v1',
+ 'sample-pipeline-v1',
  '{"assertions": [
    {"name": "status_active_again", "kind": "sql_scalar",
     "sql": "SELECT worker_status FROM silver.workers_current WHERE worker_id = {target_worker}",
@@ -291,7 +292,7 @@ VALUES ('TC-018', 'Gold: point-in-time history view reconstructs past state', 's
  1,
  '[{"generator": "initial_load", "params": {"n": 4}, "as_of_date": "2026-09-29"},
     {"generator": "dept_change", "params": {"n": 4, "target_index": 0, "new_department": "Moonshot Lab"}, "as_of_date": "2026-09-30"}]',
- 'hr-workday-ndjson-v1',
+ 'sample-pipeline-v1',
  '{"assertions": [
    {"name": "two_versions_in_gold_history", "kind": "sql_scalar",
     "sql": "SELECT COUNT(*) FROM gold.vw_worker_history WHERE worker_id = {target_worker}",
@@ -322,7 +323,7 @@ VALUES ('TC-019', 'Auditability: every artifact traces back to the file', 'audit
  'Bronze rows carry file_name + line_no; ingestion, pipeline run, merge audit and test-framework result rows all exist and link together.',
  1,
  '[{"generator": "initial_load", "params": {"n": 3}, "as_of_date": "2026-09-29"}]',
- 'hr-workday-ndjson-v1',
+ 'sample-pipeline-v1',
  '{"assertions": [
    {"name": "bronze_lineage_complete", "kind": "sql_scalar",
     "sql": "SELECT COUNT(*) FROM bronze.raw_worker_events WHERE file_id = {file_id}::uuid AND worker_json ->> ''Worker_ID'' LIKE {prefix} || ''-W%'' AND file_name IS NOT NULL AND line_no IS NOT NULL",
@@ -359,7 +360,7 @@ VALUES ('TC-020', 'DQ: high null-email ratio warns but never blocks the load', '
  '60% of workers miss Email. The load completes (warnings are advisory), silver has all 10 workers, and dq_warnings records the ratio.',
  1,
  '[{"generator": "null_emails", "params": {"n": 10, "null_ratio": 0.6}, "as_of_date": "2026-09-29"}]',
- 'hr-workday-ndjson-v1',
+ 'sample-pipeline-v1',
  '{"assertions": [
    {"name": "ingestion_completed", "kind": "sql_scalar",
     "sql": "SELECT status FROM ops.file_ingestions WHERE file_id = {file_id}::uuid",

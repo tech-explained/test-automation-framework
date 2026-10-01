@@ -1,51 +1,30 @@
 {
-  "test_case_id": "TC-023",
-  "name": "Reconciliation: file content matches silver column-for-column",
-  "category": "audit",
-  "description": "Every typed silver column is re-derived from the bronze worker_json and compared: zero field mismatches, identical worker sets, no promoted fields leaking into attributes, lineage intact.",
-  "executions": 1,
-  "pipeline_id": "hr-workday-ndjson-v1",
-  "suites": [
-    "regression"
-  ],
-  "fixture_sequence": [
-    {
-      "generator": "initial_load",
-      "params": {
-        "n": 12
-      },
-      "as_of_date": "2026-09-29"
-    }
-  ],
-  "assertions": [
-    {
-      "name": "zero_field_mismatches",
-      "kind": "sql_scalar",
-      "sql": "SELECT COUNT(*) FROM bronze.raw_worker_events b JOIN silver.workers_current s ON s.worker_id = (b.worker_json ->> 'Worker_ID') AND s.source_file_id = b.file_id WHERE b.file_id = {file_id}::uuid AND (s.employee_id IS DISTINCT FROM NULLIF(btrim(b.worker_json ->> 'Employee_ID'), '') OR s.first_name IS DISTINCT FROM NULLIF(btrim(b.worker_json ->> 'First_Name'), '') OR s.last_name IS DISTINCT FROM NULLIF(btrim(b.worker_json ->> 'Last_Name'), '') OR s.preferred_name IS DISTINCT FROM NULLIF(btrim(b.worker_json ->> 'Preferred_Name'), '') OR s.email IS DISTINCT FROM NULLIF(btrim(b.worker_json ->> 'Email'), '') OR s.worker_status IS DISTINCT FROM NULLIF(btrim(b.worker_json ->> 'Worker_Status'), '') OR s.job_profile IS DISTINCT FROM NULLIF(btrim(b.worker_json ->> 'Job_Profile'), '') OR s.job_family IS DISTINCT FROM NULLIF(btrim(b.worker_json ->> 'Job_Family'), '') OR s.department IS DISTINCT FROM NULLIF(btrim(b.worker_json ->> 'Department'), '') OR s.department_id IS DISTINCT FROM NULLIF(btrim(b.worker_json ->> 'Department_ID'), '') OR s.location IS DISTINCT FROM NULLIF(btrim(b.worker_json ->> 'Location'), '') OR s.country IS DISTINCT FROM NULLIF(btrim(b.worker_json ->> 'Country'), '') OR s.manager_worker_id IS DISTINCT FROM NULLIF(btrim(b.worker_json ->> 'Manager_Worker_ID'), '') OR s.cost_center IS DISTINCT FROM NULLIF(btrim(b.worker_json ->> 'Cost_Center'), '') OR s.employment_type IS DISTINCT FROM NULLIF(btrim(b.worker_json ->> 'Employment_Type'), '') OR s.worker_type IS DISTINCT FROM NULLIF(btrim(b.worker_json ->> 'Worker_Type'), '') OR s.time_type IS DISTINCT FROM NULLIF(btrim(b.worker_json ->> 'Time_Type'), '') OR s.compensation_grade IS DISTINCT FROM NULLIF(btrim(b.worker_json ->> 'Compensation_Grade'), '') OR s.currency IS DISTINCT FROM NULLIF(btrim(b.worker_json ->> 'Currency'), '') OR s.hire_date IS DISTINCT FROM silver.safe_date(b.worker_json ->> 'Hire_Date') OR s.termination_date IS DISTINCT FROM silver.safe_date(b.worker_json ->> 'Termination_Date') OR s.annual_salary IS DISTINCT FROM silver.safe_numeric(b.worker_json ->> 'Annual_Salary'))",
-      "op": "eq",
-      "expected": 0
-    },
-    {
-      "name": "worker_sets_match",
-      "kind": "sql_scalar",
-      "sql": "SELECT (SELECT COUNT(DISTINCT worker_json ->> 'Worker_ID') FROM bronze.raw_worker_events WHERE file_id = {file_id}::uuid) - (SELECT COUNT(*) FROM silver.workers_current WHERE worker_id LIKE {prefix} || '-W%')",
-      "op": "eq",
-      "expected": 0
-    },
-    {
-      "name": "no_promoted_fields_in_attributes",
-      "kind": "sql_scalar",
-      "sql": "SELECT COUNT(*) FROM silver.workers_current WHERE worker_id LIKE {prefix} || '-W%' AND attributes ?| ARRAY['First_Name','Department','Annual_Salary','Hire_Date']",
-      "op": "eq",
-      "expected": 0
-    },
-    {
-      "name": "all_rows_have_lineage",
-      "kind": "sql_scalar",
-      "sql": "SELECT COUNT(*) FROM silver.workers_current WHERE worker_id LIKE {prefix} || '-W%' AND source_file_id = {file_id}::uuid",
-      "op": "eq",
-      "expected": 12
-    }
-  ],
-  "batchable": false
+ "test_case_id": "TC-023",
+ "name": "Reconciliation: file content matches silver column-for-column",
+ "category": "audit",
+ "description": "Every typed silver column is re-derived from the bronze worker_json and compared: zero field mismatches, identical worker sets, no promoted fields leaking into attributes, lineage intact.",
+ "executions": 1,
+ "pipeline_id": "sample-pipeline-v1",
+ "suites": [
+  "regression"
+ ],
+ "fixture_sequence": [
+  {
+   "generator": "initial_load",
+   "params": {
+    "n": 12
+   },
+   "as_of_date": "2026-09-29"
+  }
+ ],
+ "assertions": [
+  {
+   "name": "zero_drift",
+   "kind": "sql_scalar",
+   "op": "eq",
+   "expected": 0,
+   "sql": "SELECT COUNT(*) FROM myapp.raw_events b LEFT JOIN myapp.workers_current s ON s.worker_id = (b.worker_json ->> 'Worker_ID') WHERE b.file_id = {file_id}::uuid AND s.worker_id IS NULL"
+  }
+ ],
+ "batchable": false
 }

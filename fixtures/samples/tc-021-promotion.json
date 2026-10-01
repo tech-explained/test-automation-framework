@@ -5,28 +5,28 @@
    "kind": "sql_scalar",
    "name": "version_2",
    "op": "eq",
-   "sql": "SELECT version FROM silver.workers_current WHERE worker_id = {target_worker}"
+   "sql": "SELECT version FROM myapp.workers_current WHERE worker_id = {target_worker}"
   },
   {
    "expected": "Senior Engineer",
    "kind": "sql_scalar",
    "name": "new_title",
    "op": "eq",
-   "sql": "SELECT job_profile FROM silver.workers_current WHERE worker_id = {target_worker}"
+   "sql": "SELECT job_profile FROM myapp.workers_current WHERE worker_id = {target_worker}"
   },
   {
    "expected": 1,
    "kind": "sql_scalar",
    "name": "one_history_row",
    "op": "eq",
-   "sql": "SELECT COUNT(*) FROM silver.workers_history WHERE worker_id = {target_worker}"
+   "sql": "SELECT COUNT(*) FROM myapp.workers_history WHERE worker_id = {target_worker}"
   },
   {
    "expected": 1,
    "kind": "sql_scalar",
    "name": "history_keeps_old_title",
    "op": "eq",
-   "sql": "SELECT COUNT(*) FROM silver.workers_history WHERE worker_id = {target_worker} AND job_profile <> 'Senior Engineer'"
+   "sql": "SELECT COUNT(*) FROM myapp.workers_history WHERE worker_id = {target_worker} AND job_profile <> 'Senior Engineer'"
   }
  ],
  "category": "scd4",
@@ -52,7 +52,7 @@
   }
  ],
  "name": "SCD4: promotion changes title and salary",
- "pipeline_id": "hr-workday-ndjson-v1",
+ "pipeline_id": "sample-pipeline-v1",
  "suites": [
   "regression",
   "scd4"

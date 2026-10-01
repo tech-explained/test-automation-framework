@@ -25,25 +25,21 @@ def ingest_file(uri, *, file_name, as_of_date, env, actor) -> dict:
 ```
 
 Point `tf.environments.ingest_adapter` at the dotted path of your adapter
-(`module.path:function_name`). A complete working example is at
-`examples/reference_adapter.py`.
+(`module.path:function_name`). A commented template is at
+`examples/adapter_template.py`.
 
-## Quickstart (local, no GCP needed)
+## Quickstart
 
 ```bash
-export HR_PG_DSN="postgresql://hatch:hatch@127.0.0.1/hrdemo"
+export HR_PG_DSN="postgresql://user:pass@host/dbname"
 
 # 1. apply the framework migrations (tf.* tables only; idempotent)
 bash scripts/migrate.sh
 
-# 2. apply the reference example: its own schema (bronze/silver/gold/ops),
-#    seed data (environments, suites, 23-case QA matrix), and JSON-spec cases
-bash examples/reference_pipeline/db/apply.sh
-
 # 2. unit tests
 python3 -m pytest tests/unit -q
 
-# 3. end-to-end QA: smoke suite, then full regression (23 cases)
+# 3. register your environment (see docs/OPERATIONS.md) and run
 python3 -m test_framework.runner --env local --suite smoke
 python3 -m test_framework.runner --env local --suite regression
 
@@ -60,13 +56,13 @@ assertion is also persisted in `tf.*` tables.
 |---|---|
 | `test_framework/` | The framework: `runner` (orchestrator), `fixtures` (deterministic NDJSON generators), `storage` (local/GCS backends), `pipeline_adapter` (the external-only adapter seam), `assertions` (SQL assertion engine), `batching` (batch ingest planner), `reporting` (Markdown reports). Requirements: `psycopg`, `google-cloud-storage`. |
 | `db/migrations/` | Framework schema only: `tf.*` tables (`001_test_framework.sql`). Your pipeline's tables live with your pipeline. |
-| `db/seeds/` | Empty by design — the framework ships no seed data. Sample seeds live with the reference example. |
-| `examples/` | **Not the framework.** `reference_pipeline/` is a working HR pipeline; `reference_pipeline/db/` holds its own schema (`bronze`/`silver`/`gold`/`ops`), seeds (environments, suites, 23 test cases), and `apply.sh`. `reference_adapter.py` implements the ingest contract against it. |
-| `tests/unit/` | pytest suite for the framework: fixtures, assertions, batching, adapter (46 tests). |
+| `db/seeds/` | Empty by design — the framework ships no seed data. Sample seeds live in `examples/sample_seeds/`. |
+| `examples/` | **Not the framework.** `adapter_template.py` (the ingest contract template), `sample_seeds/` (example environments, suites, and test cases — adapt to your tables). |
+| `tests/unit/` | pytest suite for the framework: fixtures, assertions, batching, adapter. |
 | `fixtures/samples/` | JSON test-case specs consumed by `test_framework/add_case.py`. |
 | `deploy/runner/` | Cloud Run Job packaging for running the framework itself on GCP. |
 | `deploy/composer/` | Cloud Composer DAG that triggers the runner job. |
-| `docs/` | `ARCHITECTURE.md`, `TEST_PLAN.md`, `OPERATIONS.md`. |
+| `docs/` | `HLD.md` (high-level design), `LLD.md` (low-level design), `ARCHITECTURE.md`, `TEST_PLAN.md`, `OPERATIONS.md`. |
 
 ## How a run flows
 
@@ -94,8 +90,7 @@ assertion is also persisted in `tf.*` tables.
 `--ingest-mode per-file` (default) calls the adapter once per fixture file —
 maximum isolation, one pipeline launch per file. `--ingest-mode batch` merges
 batch-eligible cases' fixture files by `as_of_date` into one NDJSON per date
-and calls the adapter once per group: the latest regression went from
-**34 launches to 13**, all 23 cases green.
+and calls the adapter once per group, cutting pipeline launches sharply.
 
 Eligibility is automatic: a case rides the batch unless it is flagged
 `batchable=FALSE`, runs more than one execution, uses a poison generator
@@ -106,23 +101,23 @@ Eligibility is automatic: a case rides the batch unless it is flagged
 
 ## Plug in your pipeline
 
-1. Copy `examples/reference_adapter.py` into your codebase. It shows the full
-   pattern: trigger your job (Dataflow, Spark, dbt, ...), **block until it
-   completes**, return your file identity.
+1. Copy `examples/adapter_template.py` into your codebase. It documents the
+   full contract: trigger your job (Dataflow, Spark, dbt, ...), **block
+   until it completes**, return your file identity.
 2. Register your environment row with
    `pipeline_mode='external'` and
    `ingest_adapter='mycompany.qa_adapter:ingest_file'`
    (see `docs/OPERATIONS.md`).
 3. Author test cases against your own tables with
    `python3 -m test_framework.add_case --spec fixtures/samples/your-case.json`
-   (dry-run validation first, `--apply` to upsert).
+   (dry-run validation first, `--apply` to upsert). Sample cases in
+   `examples/sample_seeds/` show the shape — rewrite the SQL for your
+   tables.
 
 Assertion SQL is yours too: each case's `expectations` is arbitrary SQL
-against your database. The 23 seeded cases target the reference schema;
-keep them if your pipeline writes those tables, otherwise write your own.
-The four assertion kinds are pipeline-agnostic except `file_rows`, which
-verifies the framework's bronze contract (sha256-of-raw-line row identity,
-`Worker_ID` natural key — see `test_framework/lineparse.py`).
+against your database. The four assertion kinds are pipeline-agnostic except
+`file_rows`, which verifies the framework's bronze contract (sha256-of-raw-line
+row identity, `Worker_ID` natural key — see `test_framework/lineparse.py`).
 
 ## Deployment
 

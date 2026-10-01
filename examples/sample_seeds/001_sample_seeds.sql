@@ -1,15 +1,17 @@
--- 001_reference_seeds.sql
--- Seed environments, pipelines, suites and the 20-case QA matrix.
--- Idempotent: safe to re-run (ON CONFLICT DO NOTHING).
+-- 001_sample_seeds.sql
+-- SAMPLE seed data: example environments, pipelines, suites and test cases.
+-- These illustrate the shape of tf.* metadata; adapt the SQL to YOUR
+-- pipeline's tables before using. Idempotent: safe to re-run
+-- (ON CONFLICT DO NOTHING).
 
 INSERT INTO tf.environments
     (env_id, display_name, pipeline_mode, storage_backend, gcp_project,
      gcs_bucket, local_bucket_root, dataflow_region, db_dsn_env_var,
      ingest_adapter, active)
 VALUES
-    ('local', 'Local dev (reference pipeline via example adapter + local disk as GCS)',
-     'external', 'local', NULL, NULL, '/tmp/hr-gcs-local', 'us-central1', 'HR_PG_DSN',
-     'examples.reference_adapter:ingest_file', TRUE),
+    ('local', 'Local dev (your adapter + local disk as GCS)',
+     'external', 'local', NULL, NULL, '/tmp/qa-gcs-local', 'us-central1', 'HR_PG_DSN',
+     'mycompany.qa_adapter:ingest_file', TRUE),
     ('gcp', 'GCP (your Dataflow/Spark pipeline via your adapter + GCS)',
      'external', 'gcs', 'REPLACE_WITH_GCP_PROJECT', 'REPLACE_WITH_GCS_BUCKET',
      NULL, 'us-central1', 'HR_PG_DSN',
@@ -17,8 +19,8 @@ VALUES
 ON CONFLICT (env_id) DO NOTHING;
 
 INSERT INTO tf.pipelines (pipeline_id, display_name, flex_template_gcs_path, pipeline_version, active)
-VALUES ('hr-workday-ndjson-v1', 'Workday RaaS NDJSON -> bronze -> silver(SCD4) -> gold',
-        'gs://REPLACE_WITH_BUCKET/templates/workday-hr-bronze.json', 'v1', TRUE)
+VALUES ('sample-pipeline-v1', 'Sample pipeline (illustrative only)',
+        'gs://REPLACE_WITH_BUCKET/templates/sample.json', 'v1', TRUE)
 ON CONFLICT (pipeline_id) DO NOTHING;
 
 -- ============================ TC-001 =====================================
@@ -29,7 +31,7 @@ VALUES ('TC-001', 'Happy path: initial load of 5 workers', 'functional',
  'Five brand-new workers load end to end: bronze rows, silver current rows, gold views, full lineage.',
  1,
  '[{"generator": "initial_load", "params": {"n": 5}, "as_of_date": "2026-09-29"}]',
- 'hr-workday-ndjson-v1',
+ 'sample-pipeline-v1',
  '{"assertions": [
    {"name": "bronze_row_count", "kind": "sql_scalar",
     "sql": "SELECT COUNT(*) FROM bronze.raw_worker_events WHERE file_id = {file_id}::uuid AND worker_json ->> ''Worker_ID'' LIKE {prefix} || ''-W%''",
@@ -70,7 +72,7 @@ VALUES ('TC-002', 'Idempotency: byte-identical file replayed', 'idempotency',
  'Same bytes ingested twice. Second ingest must short-circuit as skipped_duplicate: no new bronze rows, no silver changes, no history.',
  1,
  '[{"generator": "initial_load", "params": {"n": 5}, "as_of_date": "2026-09-29"}, {"generator": "initial_load", "params": {"n": 5}, "as_of_date": "2026-09-29"}]',
- 'hr-workday-ndjson-v1',
+ 'sample-pipeline-v1',
  '{"assertions": [
    {"name": "first_execution_completed", "kind": "sql_scalar",
     "sql": "SELECT status FROM ops.file_ingestions WHERE file_id = {file_id_0}::uuid",
@@ -108,7 +110,7 @@ VALUES ('TC-003', 'SCD4: worker department change creates one history row', 'scd
  1,
  '[{"generator": "initial_load", "params": {"n": 5}, "as_of_date": "2026-09-29"},
     {"generator": "dept_change", "params": {"n": 5, "target_index": 2, "new_department": "People Operations"}, "as_of_date": "2026-09-30"}]',
- 'hr-workday-ndjson-v1',
+ 'sample-pipeline-v1',
  '{"assertions": [
    {"name": "current_dept_updated", "kind": "sql_scalar",
     "sql": "SELECT department FROM silver.workers_current WHERE worker_id = {target_worker}",
@@ -149,7 +151,7 @@ VALUES ('TC-004', 'Idempotency: same business data in a NEW file (reordered line
  1,
  '[{"generator": "initial_load", "params": {"n": 5}, "as_of_date": "2026-09-29"},
     {"generator": "initial_load", "params": {"n": 5, "shuffle": "reverse"}, "as_of_date": "2026-09-30"}]',
- 'hr-workday-ndjson-v1',
+ 'sample-pipeline-v1',
  '{"assertions": [
    {"name": "both_files_completed", "kind": "sql_scalar",
     "sql": "SELECT COUNT(*) FROM ops.file_ingestions WHERE file_id IN ({file_id_0}::uuid, {file_id_1}::uuid) AND status = ''completed''",
@@ -181,7 +183,7 @@ VALUES ('TC-005', 'SCD4: termination is versioned, never deleted', 'scd4',
  1,
  '[{"generator": "initial_load", "params": {"n": 5}, "as_of_date": "2026-09-29"},
     {"generator": "terminate", "params": {"n": 5, "target_index": 1, "termination_date": "2026-09-28"}, "as_of_date": "2026-09-30"}]',
- 'hr-workday-ndjson-v1',
+ 'sample-pipeline-v1',
  '{"assertions": [
    {"name": "status_terminated", "kind": "sql_scalar",
     "sql": "SELECT worker_status FROM silver.workers_current WHERE worker_id = {target_worker}",
@@ -222,7 +224,7 @@ VALUES ('TC-006', 'SCD4: new hires insert without touching existing versions', '
  1,
  '[{"generator": "initial_load", "params": {"n": 5}, "as_of_date": "2026-09-29"},
     {"generator": "add_workers", "params": {"n": 5, "extra": 2}, "as_of_date": "2026-09-30"}]',
- 'hr-workday-ndjson-v1',
+ 'sample-pipeline-v1',
  '{"assertions": [
    {"name": "seven_current", "kind": "sql_scalar",
     "sql": "SELECT COUNT(*) FROM silver.workers_current WHERE worker_id LIKE {prefix} || ''-W%''",
@@ -250,7 +252,7 @@ VALUES ('TC-007', 'Negative: malformed JSON lines are quarantined', 'negative',
  'File mixes 5 good workers with 2 corrupt lines. Good rows load fully; bad lines land in bronze rejects; the run still completes.',
  1,
  '[{"generator": "with_malformed", "params": {"n": 5, "bad": 2}, "as_of_date": "2026-09-29"}]',
- 'hr-workday-ndjson-v1',
+ 'sample-pipeline-v1',
  '{"assertions": [
    {"name": "bronze_loaded_5", "kind": "sql_scalar",
     "sql": "SELECT COUNT(*) FROM bronze.raw_worker_events WHERE file_id = {file_id}::uuid",
@@ -284,7 +286,7 @@ VALUES ('TC-008', 'Negative: row without Worker_ID is rejected', 'negative',
  'A worker object missing the natural key cannot be curated. It is quarantined with reason missing_worker_id; the other 4 workers load normally.',
  1,
  '[{"generator": "missing_worker_id", "params": {"n": 4}, "as_of_date": "2026-09-29"}]',
- 'hr-workday-ndjson-v1',
+ 'sample-pipeline-v1',
  '{"assertions": [
    {"name": "bronze_loaded_4", "kind": "sql_scalar",
     "sql": "SELECT COUNT(*) FROM bronze.raw_worker_events WHERE file_id = {file_id}::uuid",

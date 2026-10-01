@@ -22,8 +22,8 @@ Adapter contract — a callable::
 
 Wiring: set ``tf.environments.pipeline_mode = 'external'`` and
 ``tf.environments.ingest_adapter`` to the dotted path of your adapter, e.g.
-``mycompany.qa_adapter:ingest_file``. See ``examples/reference_adapter.py``
-for a complete working example.
+``mycompany.qa_adapter:ingest_file``. See ``examples/adapter_template.py``
+for the contract template.
 
 Note on ``file_rows``: that assertion kind verifies against the framework's
 bronze contract (``test_framework.lineparse``: sha256-of-raw-line row
@@ -86,6 +86,6 @@ def load_ingest(env: dict, pipeline: dict) -> Callable[..., dict]:
             f"unknown pipeline_mode '{mode}' for environment '{env.get('env_id')}'. "
             "The framework only supports pipeline_mode='external' with "
             "tf.environments.ingest_adapter pointing at your adapter "
-            "(see examples/reference_adapter.py)."
+            "(see examples/adapter_template.py)."
         )
     return _external_ingest(env)

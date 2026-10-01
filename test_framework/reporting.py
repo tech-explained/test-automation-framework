@@ -80,7 +80,7 @@ def build_report(conn, run_id: str) -> tuple[str, str]:
         "",
         "Every number above is backed by persisted rows:",
         "- `tf.test_runs` / `tf.test_case_results` / `tf.assertion_results` for the framework trail,",
-        "- `ops.file_ingestions` / `ops.pipeline_runs` / `ops.audit_log` for the pipeline trail,",
+        "- your pipeline's own ingestion/audit tables for the pipeline trail,",
         "- fixture NDJSON artifacts under the run's storage prefix.",
         "",
         f"_Report generated {datetime.now(timezone.utc).isoformat()}_",
