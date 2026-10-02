@@ -1,0 +1,157 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1560" height="1120" viewBox="0 0 1560 1120">
+<defs><marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#4b5563"/></marker></defs>
+<rect x="0" y="0" width="1560" height="1120" fill="#ffffff"/>
+<text x="780" y="34" font-family="DejaVu Sans, sans-serif" font-size="22" font-weight="700" fill="#111827" text-anchor="middle">Test Automation Framework — Architecture</text>
+<text x="780" y="54" font-family="DejaVu Sans, sans-serif" font-size="12.5" font-weight="400" fill="#6b7280" text-anchor="middle">Metadata-driven pipeline testing: generate → ingest → assert → report</text>
+<rect x="60" y="70" width="1440" height="86" rx="8" fill="#dbeafe" stroke="#2563eb" stroke-width="2"/>
+<text x="76" y="94" font-family="DejaVu Sans, sans-serif" font-size="13" font-weight="700" fill="#1d4ed8" text-anchor="start">USER INTERACTION</text>
+<rect x="76" y="102" width="320" height="44" rx="8" fill="#ffffff" stroke="#93c5fd" stroke-width="1.6"/>
+<text x="88" y="124" font-family="DejaVu Sans, sans-serif" font-size="12" font-weight="700" fill="#1f2937" text-anchor="start">CLI Runner</text>
+<text x="88" y="142" font-family="DejaVu Sans, sans-serif" font-size="10.5" font-weight="400" fill="#374151" text-anchor="start">python -m test_framework.runner</text>
+<rect x="412" y="102" width="380" height="44" rx="8" fill="#ffffff" stroke="#93c5fd" stroke-width="1.6"/>
+<text x="424" y="124" font-family="DejaVu Sans, sans-serif" font-size="12" font-weight="700" fill="#1f2937" text-anchor="start">Case Authoring</text>
+<text x="424" y="142" font-family="DejaVu Sans, sans-serif" font-size="10.5" font-weight="400" fill="#374151" text-anchor="start">add_case.py — JSON spec → tf.test_cases</text>
+<rect x="808" y="102" width="320" height="44" rx="8" fill="#ffffff" stroke="#93c5fd" stroke-width="1.6"/>
+<text x="820" y="124" font-family="DejaVu Sans, sans-serif" font-size="12" font-weight="700" fill="#1f2937" text-anchor="start">Seed / Inspect (SQL)</text>
+<text x="820" y="142" font-family="DejaVu Sans, sans-serif" font-size="10.5" font-weight="400" fill="#374151" text-anchor="start">psql — seed &amp; query tf.* tables</text>
+<rect x="1144" y="102" width="340" height="44" rx="8" fill="#ffffff" stroke="#93c5fd" stroke-width="1.6"/>
+<text x="1156" y="124" font-family="DejaVu Sans, sans-serif" font-size="12" font-weight="700" fill="#1f2937" text-anchor="start">Scheduler / CI</text>
+<text x="1156" y="142" font-family="DejaVu Sans, sans-serif" font-size="10.5" font-weight="400" fill="#374151" text-anchor="start">Composer DAG · cron · pipeline</text>
+<rect x="60" y="182" width="270" height="468" rx="8" fill="#f0fdf4" stroke="#16a34a" stroke-width="2"/>
+<text x="76" y="208" font-family="DejaVu Sans, sans-serif" font-size="14" font-weight="700" fill="#15803d" text-anchor="start">SOURCES</text>
+<rect x="76" y="222" width="238" height="92" rx="8" fill="#ffffff" stroke="#86efac" stroke-width="1.6"/>
+<text x="88" y="244" font-family="DejaVu Sans, sans-serif" font-size="13.5" font-weight="700" fill="#1f2937" text-anchor="start">Test Definitions</text>
+<text x="88" y="262" font-family="DejaVu Sans, sans-serif" font-size="11" font-weight="400" fill="#374151" text-anchor="start">tf.test_cases (fixtures +</text>
+<text x="88" y="277" font-family="DejaVu Sans, sans-serif" font-size="11" font-weight="400" fill="#374151" text-anchor="start">  assertions as JSONB)</text>
+<text x="88" y="292" font-family="DejaVu Sans, sans-serif" font-size="11" font-weight="400" fill="#374151" text-anchor="start">tf.suites (ordered case lists)</text>
+<rect x="76" y="326" width="238" height="92" rx="8" fill="#ffffff" stroke="#86efac" stroke-width="1.6"/>
+<text x="88" y="348" font-family="DejaVu Sans, sans-serif" font-size="13.5" font-weight="700" fill="#1f2937" text-anchor="start">Fixture Generators</text>
+<text x="88" y="366" font-family="DejaVu Sans, sans-serif" font-size="11" font-weight="400" fill="#374151" text-anchor="start">17 deterministic generators</text>
+<text x="88" y="381" font-family="DejaVu Sans, sans-serif" font-size="11" font-weight="400" fill="#374151" text-anchor="start">pure functions of (params,</text>
+<text x="88" y="396" font-family="DejaVu Sans, sans-serif" font-size="11" font-weight="400" fill="#374151" text-anchor="start">  run-prefix) → NDJSON</text>
+<rect x="76" y="430" width="238" height="92" rx="8" fill="#ffffff" stroke="#86efac" stroke-width="1.6"/>
+<text x="88" y="452" font-family="DejaVu Sans, sans-serif" font-size="13.5" font-weight="700" fill="#1f2937" text-anchor="start">Environment Metadata</text>
+<text x="88" y="470" font-family="DejaVu Sans, sans-serif" font-size="11" font-weight="400" fill="#374151" text-anchor="start">tf.environments (backend,</text>
+<text x="88" y="485" font-family="DejaVu Sans, sans-serif" font-size="11" font-weight="400" fill="#374151" text-anchor="start">  adapter, DSN var)</text>
+<text x="88" y="500" font-family="DejaVu Sans, sans-serif" font-size="11" font-weight="400" fill="#374151" text-anchor="start">tf.pipelines (launch config)</text>
+<rect x="76" y="534" width="238" height="100" rx="8" fill="#ffffff" stroke="#86efac" stroke-width="1.6"/>
+<text x="88" y="556" font-family="DejaVu Sans, sans-serif" font-size="13.5" font-weight="700" fill="#1f2937" text-anchor="start">JSON Test Specs</text>
+<text x="88" y="574" font-family="DejaVu Sans, sans-serif" font-size="11" font-weight="400" fill="#374151" text-anchor="start">fixtures/samples/*.json</text>
+<text x="88" y="589" font-family="DejaVu Sans, sans-serif" font-size="11" font-weight="400" fill="#374151" text-anchor="start">validated by add_case.py</text>
+<text x="88" y="604" font-family="DejaVu Sans, sans-serif" font-size="11" font-weight="400" fill="#374151" text-anchor="start">(dry-run before apply)</text>
+<rect x="362" y="182" width="686" height="468" rx="8" fill="#fffbeb" stroke="#d97706" stroke-width="2.4"/>
+<text x="378" y="208" font-family="DejaVu Sans, sans-serif" font-size="14.5" font-weight="700" fill="#b45309" text-anchor="start">CORE TEST FRAMEWORK  (test_framework/)</text>
+<rect x="378" y="220" width="654" height="248" rx="8" fill="#ffedd5" stroke="#ea580c" stroke-width="1.8"/>
+<text x="392" y="243" font-family="DejaVu Sans, sans-serif" font-size="13" font-weight="700" fill="#c2410c" text-anchor="start">TEST ENGINE</text>
+<rect x="392" y="254" width="312" height="96" rx="8" fill="#ffffff" stroke="#fdba74" stroke-width="1.6"/>
+<text x="404" y="276" font-family="DejaVu Sans, sans-serif" font-size="13.5" font-weight="700" fill="#1f2937" text-anchor="start">Runner / Orchestrator  (runner.py)</text>
+<text x="404" y="294" font-family="DejaVu Sans, sans-serif" font-size="11" font-weight="400" fill="#374151" text-anchor="start">resolve → lock → generate →</text>
+<text x="404" y="309" font-family="DejaVu Sans, sans-serif" font-size="11" font-weight="400" fill="#374151" text-anchor="start">  ingest → assert → persist</text>
+<text x="404" y="324" font-family="DejaVu Sans, sans-serif" font-size="11" font-weight="400" fill="#374151" text-anchor="start">per-file &amp; batch ingest modes</text>
+<rect x="718" y="254" width="300" height="96" rx="8" fill="#ffffff" stroke="#fdba74" stroke-width="1.6"/>
+<text x="730" y="276" font-family="DejaVu Sans, sans-serif" font-size="13.5" font-weight="700" fill="#1f2937" text-anchor="start">Fixture Engine  (fixtures.py)</text>
+<text x="730" y="294" font-family="DejaVu Sans, sans-serif" font-size="11" font-weight="400" fill="#374151" text-anchor="start">deterministic NDJSON files</text>
+<text x="730" y="309" font-family="DejaVu Sans, sans-serif" font-size="11" font-weight="400" fill="#374151" text-anchor="start">per-run prefix namespace</text>
+<text x="730" y="324" font-family="DejaVu Sans, sans-serif" font-size="11" font-weight="400" fill="#374151" text-anchor="start">byte-identical regeneration</text>
+<rect x="392" y="362" width="312" height="92" rx="8" fill="#ffffff" stroke="#fdba74" stroke-width="1.6"/>
+<text x="404" y="384" font-family="DejaVu Sans, sans-serif" font-size="13.5" font-weight="700" fill="#1f2937" text-anchor="start">Assertion Engine  (assertions.py)</text>
+<text x="404" y="402" font-family="DejaVu Sans, sans-serif" font-size="11" font-weight="400" fill="#374151" text-anchor="start">sql_scalar · sql_row</text>
+<text x="404" y="417" font-family="DejaVu Sans, sans-serif" font-size="11" font-weight="400" fill="#374151" text-anchor="start">file_bytes · file_rows (bronze</text>
+<text x="404" y="432" font-family="DejaVu Sans, sans-serif" font-size="11" font-weight="400" fill="#374151" text-anchor="start">  contract) · bound params</text>
+<rect x="718" y="362" width="300" height="92" rx="8" fill="#ffffff" stroke="#fdba74" stroke-width="1.6"/>
+<text x="730" y="384" font-family="DejaVu Sans, sans-serif" font-size="13.5" font-weight="700" fill="#1f2937" text-anchor="start">Ingest Seam  (pipeline_adapter.py)</text>
+<text x="730" y="402" font-family="DejaVu Sans, sans-serif" font-size="11" font-weight="400" fill="#374151" text-anchor="start">the ONLY pipeline touchpoint</text>
+<text x="730" y="417" font-family="DejaVu Sans, sans-serif" font-size="11" font-weight="400" fill="#374151" text-anchor="start">ingest_file contract</text>
+<text x="730" y="432" font-family="DejaVu Sans, sans-serif" font-size="11" font-weight="400" fill="#374151" text-anchor="start">batch planner (batching.py)</text>
+<rect x="378" y="480" width="654" height="156" rx="8" fill="#e0e7ff" stroke="#4f46e5" stroke-width="1.8"/>
+<text x="392" y="503" font-family="DejaVu Sans, sans-serif" font-size="13" font-weight="700" fill="#4338ca" text-anchor="start">DB LAYER  (PostgreSQL — schema tf)</text>
+<rect x="392" y="514" width="312" height="106" rx="8" fill="#ffffff" stroke="#a5b4fc" stroke-width="1.6"/>
+<text x="404" y="536" font-family="DejaVu Sans, sans-serif" font-size="13.5" font-weight="700" fill="#1f2937" text-anchor="start">Definitions  (written by authors)</text>
+<text x="404" y="554" font-family="DejaVu Sans, sans-serif" font-size="11" font-weight="400" fill="#374151" text-anchor="start">tf.environments · tf.pipelines</text>
+<text x="404" y="569" font-family="DejaVu Sans, sans-serif" font-size="11" font-weight="400" fill="#374151" text-anchor="start">tf.suites · tf.test_cases</text>
+<rect x="718" y="514" width="300" height="106" rx="8" fill="#ffffff" stroke="#a5b4fc" stroke-width="1.6"/>
+<text x="730" y="536" font-family="DejaVu Sans, sans-serif" font-size="13.5" font-weight="700" fill="#1f2937" text-anchor="start">Execution  (written by runner)</text>
+<text x="730" y="554" font-family="DejaVu Sans, sans-serif" font-size="11" font-weight="400" fill="#374151" text-anchor="start">tf.test_runs · tf.test_case_results</text>
+<text x="730" y="569" font-family="DejaVu Sans, sans-serif" font-size="11" font-weight="400" fill="#374151" text-anchor="start">tf.assertion_results · advisory lock</text>
+<rect x="1080" y="182" width="420" height="468" rx="8" fill="#fef2f2" stroke="#dc2626" stroke-width="2"/>
+<text x="1096" y="208" font-family="DejaVu Sans, sans-serif" font-size="14" font-weight="700" fill="#b91c1c" text-anchor="start">TARGETS  (systems under test)</text>
+<rect x="1096" y="222" width="388" height="106" rx="8" fill="#ffffff" stroke="#fca5a5" stroke-width="1.6"/>
+<text x="1108" y="244" font-family="DejaVu Sans, sans-serif" font-size="13.5" font-weight="700" fill="#1f2937" text-anchor="start">Pipeline Under Test</text>
+<text x="1108" y="262" font-family="DejaVu Sans, sans-serif" font-size="11" font-weight="400" fill="#374151" text-anchor="start">YOUR code — loaded via the ingest</text>
+<text x="1108" y="277" font-family="DejaVu Sans, sans-serif" font-size="11" font-weight="400" fill="#374151" text-anchor="start">adapter (external; never imported</text>
+<text x="1108" y="292" font-family="DejaVu Sans, sans-serif" font-size="11" font-weight="400" fill="#374151" text-anchor="start">by the framework)</text>
+<text x="1108" y="307" font-family="DejaVu Sans, sans-serif" font-size="11" font-weight="400" fill="#374151" text-anchor="start">blocks until each file is loaded</text>
+<rect x="1096" y="340" width="388" height="106" rx="8" fill="#ffffff" stroke="#fca5a5" stroke-width="1.6"/>
+<text x="1108" y="362" font-family="DejaVu Sans, sans-serif" font-size="13.5" font-weight="700" fill="#1f2937" text-anchor="start">Target Database</text>
+<text x="1108" y="380" font-family="DejaVu Sans, sans-serif" font-size="11" font-weight="400" fill="#374151" text-anchor="start">the pipeline&#x27;s OWN tables</text>
+<text x="1108" y="395" font-family="DejaVu Sans, sans-serif" font-size="11" font-weight="400" fill="#374151" text-anchor="start">(landing / curated / audit layers)</text>
+<text x="1108" y="410" font-family="DejaVu Sans, sans-serif" font-size="11" font-weight="400" fill="#374151" text-anchor="start">asserted with read-only SQL</text>
+<rect x="1096" y="458" width="388" height="106" rx="8" fill="#ffffff" stroke="#fca5a5" stroke-width="1.6"/>
+<text x="1108" y="480" font-family="DejaVu Sans, sans-serif" font-size="13.5" font-weight="700" fill="#1f2937" text-anchor="start">Storage Destination</text>
+<text x="1108" y="498" font-family="DejaVu Sans, sans-serif" font-size="11" font-weight="400" fill="#374151" text-anchor="start">fixture files land here first:</text>
+<text x="1108" y="513" font-family="DejaVu Sans, sans-serif" font-size="11" font-weight="400" fill="#374151" text-anchor="start">GCS bucket  ·  local disk</text>
+<text x="1108" y="528" font-family="DejaVu Sans, sans-serif" font-size="11" font-weight="400" fill="#374151" text-anchor="start">(same layout in both modes)</text>
+<rect x="1096" y="576" width="388" height="58" rx="8" fill="#ffffff" stroke="#fca5a5" stroke-width="1.6"/>
+<text x="1108" y="598" font-family="DejaVu Sans, sans-serif" font-size="13.5" font-weight="700" fill="#1f2937" text-anchor="start">Adapter You Write</text>
+<text x="1108" y="616" font-family="DejaVu Sans, sans-serif" font-size="11" font-weight="400" fill="#374151" text-anchor="start">one function: ingest_file(uri, ...)</text>
+<line x1="330" y1="290" x2="384" y2="290" stroke="#4b5563" stroke-width="1.8" marker-end="url(#arr)"/>
+<text x="333" y="282" font-family="DejaVu Sans, sans-serif" font-size="10.5" font-weight="400" fill="#4b5563" text-anchor="start">metadata</text>
+<line x1="330" y1="470" x2="384" y2="470" stroke="#4b5563" stroke-width="1.8" marker-end="url(#arr)"/>
+<text x="333" y="462" font-family="DejaVu Sans, sans-serif" font-size="10.5" font-weight="400" fill="#4b5563" text-anchor="start">env config</text>
+<line x1="705" y1="468" x2="705" y2="486" stroke="#4b5563" stroke-width="1.8" marker-end="url(#arr)"/>
+<text x="712" y="480" font-family="DejaVu Sans, sans-serif" font-size="10.5" font-weight="400" fill="#4b5563" text-anchor="start">persist results</text>
+<line x1="1018" y1="300" x2="1090" y2="300" stroke="#4b5563" stroke-width="1.8" marker-end="url(#arr)"/>
+<text x="1022" y="292" font-family="DejaVu Sans, sans-serif" font-size="10.5" font-weight="400" fill="#4b5563" text-anchor="start">ingest (adapter)</text>
+<line x1="1018" y1="400" x2="1090" y2="400" stroke="#4b5563" stroke-width="1.8" marker-end="url(#arr)"/>
+<text x="1030" y="392" font-family="DejaVu Sans, sans-serif" font-size="10.5" font-weight="400" fill="#4b5563" text-anchor="start">assert (SQL)</text>
+<rect x="60" y="676" width="1440" height="104" rx="8" fill="#faf5ff" stroke="#9333ea" stroke-width="2"/>
+<text x="76" y="700" font-family="DejaVu Sans, sans-serif" font-size="13" font-weight="700" fill="#7e22ce" text-anchor="start">REPORTING</text>
+<rect x="76" y="710" width="660" height="56" rx="8" fill="#ffffff" stroke="#d8b4fe" stroke-width="1.6"/>
+<text x="88" y="732" font-family="DejaVu Sans, sans-serif" font-size="13.5" font-weight="700" fill="#1f2937" text-anchor="start">Markdown Report  (reporting.py)</text>
+<text x="88" y="750" font-family="DejaVu Sans, sans-serif" font-size="11" font-weight="400" fill="#374151" text-anchor="start">built ONLY from tf.* rows → reports/&lt;run_id&gt;.md</text>
+<rect x="752" y="710" width="356" height="56" rx="8" fill="#ffffff" stroke="#d8b4fe" stroke-width="1.6"/>
+<text x="764" y="732" font-family="DejaVu Sans, sans-serif" font-size="13.5" font-weight="700" fill="#1f2937" text-anchor="start">Audit Trail</text>
+<text x="764" y="750" font-family="DejaVu Sans, sans-serif" font-size="11" font-weight="400" fill="#374151" text-anchor="start">run / case / assertion rows</text>
+<rect x="1124" y="710" width="360" height="56" rx="8" fill="#ffffff" stroke="#d8b4fe" stroke-width="1.6"/>
+<text x="1136" y="732" font-family="DejaVu Sans, sans-serif" font-size="13.5" font-weight="700" fill="#1f2937" text-anchor="start">Exit Code</text>
+<text x="1136" y="750" font-family="DejaVu Sans, sans-serif" font-size="11" font-weight="400" fill="#374151" text-anchor="start">0 = pass · 1 = fail (CI gate)</text>
+<line x1="705" y1="636" x2="705" y2="672" stroke="#4b5563" stroke-width="1.8" marker-end="url(#arr)"/>
+<text x="712" y="660" font-family="DejaVu Sans, sans-serif" font-size="10.5" font-weight="400" fill="#4b5563" text-anchor="start">report = a query, not a log scrape</text>
+<text x="60" y="816" font-family="DejaVu Sans, sans-serif" font-size="15" font-weight="700" fill="#111827" text-anchor="start">TWO RUN MODES — same framework, different infrastructure</text>
+<rect x="60" y="830" width="716" height="262" rx="8" fill="#f9fafb" stroke="#6b7280" stroke-width="2"/>
+<text x="76" y="856" font-family="DejaVu Sans, sans-serif" font-size="14" font-weight="700" fill="#374151" text-anchor="start">LOCAL MODE</text>
+<rect x="76" y="868" width="336" height="96" rx="8" fill="#ffffff" stroke="#d1d5db" stroke-width="1.6"/>
+<text x="88" y="890" font-family="DejaVu Sans, sans-serif" font-size="13.5" font-weight="700" fill="#1f2937" text-anchor="start">Storage: Local Disk</text>
+<text x="88" y="908" font-family="DejaVu Sans, sans-serif" font-size="11" font-weight="400" fill="#374151" text-anchor="start">LocalStorageBackend</text>
+<text x="88" y="923" font-family="DejaVu Sans, sans-serif" font-size="11" font-weight="400" fill="#374151" text-anchor="start">directory acts as the bucket</text>
+<rect x="424" y="868" width="336" height="96" rx="8" fill="#ffffff" stroke="#d1d5db" stroke-width="1.6"/>
+<text x="436" y="890" font-family="DejaVu Sans, sans-serif" font-size="13.5" font-weight="700" fill="#1f2937" text-anchor="start">Database: Local PostgreSQL</text>
+<text x="436" y="908" font-family="DejaVu Sans, sans-serif" font-size="11" font-weight="400" fill="#374151" text-anchor="start">tf schema + target tables</text>
+<text x="436" y="923" font-family="DejaVu Sans, sans-serif" font-size="11" font-weight="400" fill="#374151" text-anchor="start">on one dev database</text>
+<rect x="76" y="976" width="336" height="100" rx="8" fill="#ffffff" stroke="#d1d5db" stroke-width="1.6"/>
+<text x="88" y="998" font-family="DejaVu Sans, sans-serif" font-size="13.5" font-weight="700" fill="#1f2937" text-anchor="start">Adapter: In-Process</text>
+<text x="88" y="1016" font-family="DejaVu Sans, sans-serif" font-size="11" font-weight="400" fill="#374151" text-anchor="start">imported by the runner</text>
+<text x="88" y="1031" font-family="DejaVu Sans, sans-serif" font-size="11" font-weight="400" fill="#374151" text-anchor="start">module — fastest debug loop</text>
+<rect x="424" y="976" width="336" height="100" rx="8" fill="#ffffff" stroke="#d1d5db" stroke-width="1.6"/>
+<text x="436" y="998" font-family="DejaVu Sans, sans-serif" font-size="13.5" font-weight="700" fill="#1f2937" text-anchor="start">Trigger: CLI</text>
+<text x="436" y="1016" font-family="DejaVu Sans, sans-serif" font-size="11" font-weight="400" fill="#374151" text-anchor="start">python -m test_framework.runner</text>
+<text x="436" y="1031" font-family="DejaVu Sans, sans-serif" font-size="11" font-weight="400" fill="#374151" text-anchor="start">--env local --suite smoke</text>
+<rect x="792" y="830" width="708" height="262" rx="8" fill="#eff6ff" stroke="#3b82f6" stroke-width="2"/>
+<text x="808" y="856" font-family="DejaVu Sans, sans-serif" font-size="14" font-weight="700" fill="#1d4ed8" text-anchor="start">GCP MODE  (cloud services)</text>
+<rect x="808" y="868" width="330" height="96" rx="8" fill="#ffffff" stroke="#93c5fd" stroke-width="1.6"/>
+<text x="820" y="890" font-family="DejaVu Sans, sans-serif" font-size="13.5" font-weight="700" fill="#1f2937" text-anchor="start">Storage: GCS Bucket</text>
+<text x="820" y="908" font-family="DejaVu Sans, sans-serif" font-size="11" font-weight="400" fill="#374151" text-anchor="start">GCSBackend (google-cloud-</text>
+<text x="820" y="923" font-family="DejaVu Sans, sans-serif" font-size="11" font-weight="400" fill="#374151" text-anchor="start">storage), gs:// URIs</text>
+<rect x="1154" y="868" width="330" height="96" rx="8" fill="#ffffff" stroke="#93c5fd" stroke-width="1.6"/>
+<text x="1166" y="890" font-family="DejaVu Sans, sans-serif" font-size="13.5" font-weight="700" fill="#1f2937" text-anchor="start">Database: Cloud SQL</text>
+<text x="1166" y="908" font-family="DejaVu Sans, sans-serif" font-size="11" font-weight="400" fill="#374151" text-anchor="start">PostgreSQL, private IP</text>
+<text x="1166" y="923" font-family="DejaVu Sans, sans-serif" font-size="11" font-weight="400" fill="#374151" text-anchor="start">via VPC connector</text>
+<rect x="808" y="976" width="330" height="100" rx="8" fill="#ffffff" stroke="#93c5fd" stroke-width="1.6"/>
+<text x="820" y="998" font-family="DejaVu Sans, sans-serif" font-size="13.5" font-weight="700" fill="#1f2937" text-anchor="start">Runner: Cloud Run Job</text>
+<text x="820" y="1016" font-family="DejaVu Sans, sans-serif" font-size="11" font-weight="400" fill="#374151" text-anchor="start">deploy/runner — containerized</text>
+<text x="820" y="1031" font-family="DejaVu Sans, sans-serif" font-size="11" font-weight="400" fill="#374151" text-anchor="start">framework, 2h timeout</text>
+<rect x="1154" y="976" width="330" height="100" rx="8" fill="#ffffff" stroke="#93c5fd" stroke-width="1.6"/>
+<text x="1166" y="998" font-family="DejaVu Sans, sans-serif" font-size="13.5" font-weight="700" fill="#1f2937" text-anchor="start">Scheduler: Composer DAG</text>
+<text x="1166" y="1016" font-family="DejaVu Sans, sans-serif" font-size="11" font-weight="400" fill="#374151" text-anchor="start">deploy/composer — smoke →</text>
+<text x="1166" y="1031" font-family="DejaVu Sans, sans-serif" font-size="11" font-weight="400" fill="#374151" text-anchor="start">regression, on demand or cron</text>
+</svg>

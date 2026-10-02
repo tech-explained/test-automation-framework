@@ -6,6 +6,7 @@ deterministic fixtures, loads them through your pipeline, and evaluates
 stored SQL assertions against your database. No YAML, no config drift: test
 cases, environments, suites, and every result live in PostgreSQL (`tf.*`).
 
+![Architecture diagram](docs/architecture-diagram.png)
 ## The one seam: the ingest adapter
 
 The framework never touches your pipeline's internals. It calls one function
@@ -62,7 +63,7 @@ assertion is also persisted in `tf.*` tables.
 | `fixtures/samples/` | JSON test-case specs consumed by `test_framework/add_case.py`. |
 | `deploy/runner/` | Cloud Run Job packaging for running the framework itself on GCP. |
 | `deploy/composer/` | Cloud Composer DAG that triggers the runner job. |
-| `docs/` | `HLD.md` (high-level design), `LLD.md` (low-level design), `ARCHITECTURE.md`, `TEST_PLAN.md`, `OPERATIONS.md`. |
+| `docs/` | `HLD.md` (high-level design), `LLD.md` (low-level design), `ARCHITECTURE.md`, `TEST_PLAN.md`, `OPERATIONS.md`, `architecture-diagram.svg/png`, `schema-diagram.svg/png`. |
 
 ## How a run flows
 
